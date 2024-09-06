@@ -97,7 +97,7 @@ func main() {
 
 	store.Options = &sessions.Options{
 		Path:     "/",
-		MaxAge:   60 * 15,
+		MaxAge:   30 * 24 * 60 * 60, // seconds
 		HttpOnly: true,
 		Secure:   false, // needed for session to work over http
 	}
