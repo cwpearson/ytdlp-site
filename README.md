@@ -33,3 +33,11 @@ docker run --rm -it \
   -v $(realpath downloads):/downloads \
   server
 ```
+
+## GHCR Deploy
+
+Build and push this container to ghcr
+
+* Create a "personal access token (classic)" with write:packages
+  * account > settings > developer settings > personal access tokens > tokens (classic) > generate new token (classic)
+* Put that personal access token as the repository actions secret `GHCR_TOKEN`.
