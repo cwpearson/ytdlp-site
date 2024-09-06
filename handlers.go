@@ -129,6 +129,59 @@ func getMeta(url string) (Meta, error) {
 	}
 }
 
+// return the length in seconds of a video file at `path`
+func getLength(path string) (float64, error) {
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1", path)
+
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("getLength cmd error:", err)
+		return -1, err
+	}
+
+	result, err := strconv.ParseFloat(strings.TrimSpace(stdout.String()), 64)
+	if err != nil {
+		fmt.Println("getLength parse error:", err, stdout.String())
+	}
+	return result, nil
+}
+
+func humanLength(s float64) string {
+	ss := int64(s)
+	mm, ss := ss/60, ss%60
+	hh, mm := mm/60, mm%60
+
+	return fmt.Sprintf("%d:%02d:%02d", hh, mm, ss)
+}
+
+func getSize(path string) (int64, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return -1, err
+	}
+	return fi.Size(), nil
+}
+
+func humanSize(bytes int64) string {
+	const (
+		KiB = 1024
+		MiB = 1024 * KiB
+		GiB = 1024 * MiB
+	)
+
+	if bytes >= GiB {
+		return fmt.Sprintf("%.1f GiB", float64(bytes)/float64(GiB))
+	} else if bytes >= MiB {
+		return fmt.Sprintf("%.1f MiB", float64(bytes)/float64(MiB))
+	} else if bytes >= KiB {
+		return fmt.Sprintf("%.1f KiB", float64(bytes)/float64(KiB))
+	}
+	return fmt.Sprintf("%d bytes", bytes)
+}
+
 func startDownload(videoID uint, videoURL string) {
 	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "downloading")
 
@@ -177,6 +230,22 @@ func startDownload(videoID uint, videoURL string) {
 		"audio_filename": audioFilename,
 		"status":         "completed",
 	})
+
+	length, err := getLength(videoFilepath)
+	if err == nil {
+		db.Model(&Video{}).Where("id = ?", videoID).Update("length", humanLength(length))
+	}
+
+	videoSize, err := getSize(videoFilepath)
+	if err == nil {
+		db.Model(&Video{}).Where("id = ?", videoID).Update("video_size", humanSize(videoSize))
+	}
+
+	audioSize, err := getSize(audioFilepath)
+	if err == nil {
+		db.Model(&Video{}).Where("id = ?", videoID).Update("audio_size", humanSize(audioSize))
+	}
+
 }
 
 func videosHandler(c echo.Context) error {

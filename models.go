@@ -15,6 +15,9 @@ type Video struct {
 	VideoFilename string
 	AudioFilename string
 	UserID        uint
+	Length        string
+	AudioSize     string
+	VideoSize     string
 	Status        string // "pending", "downloading", "completed", "failed", "cancelled"
 }
 
