@@ -76,7 +76,7 @@ func loginPostHandler(c echo.Context) error {
 
 func logoutHandler(c echo.Context) error {
 	session, _ := store.Get(c.Request(), "session")
-	session.Values["user_id"] = nil
+	delete(session.Values, "user_id")
 	session.Save(c.Request(), c.Response().Writer)
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
