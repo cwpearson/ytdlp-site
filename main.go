@@ -93,7 +93,12 @@ func main() {
 	e.POST("/video/:id/cancel", videoCancelHandler, authMiddleware)
 	e.POST("/video/:id/restart", videoRestartHandler, authMiddleware)
 	e.POST("/video/:id/delete", videoDeleteHandler, authMiddleware)
-	e.Static("/downloads", getDownloadDir())
+
+	staticGroup := e.Group("/downloads")
+	staticGroup.Use(authMiddleware)
+	staticGroup.Static("/", getDownloadDir())
+
+	// e.Static("/downloads", getDownloadDir())
 
 	store.Options = &sessions.Options{
 		Path:     "/",
