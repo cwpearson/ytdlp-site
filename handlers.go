@@ -214,7 +214,7 @@ func startDownload(videoID uint, videoURL string) {
 	}
 	ffmpeg := "ffmpeg"
 	ffmpegArgs := []string{"-i", videoFilepath, "-vn", "-acodec",
-		"mp3", "-b:a", "192k", audioFilepath}
+		"mp3", "-b:a", "160k", audioFilepath}
 	fmt.Println(ffmpeg, ffmpegArgs)
 	cmd = exec.Command(ffmpeg, ffmpegArgs...)
 	err = cmd.Run()
