@@ -35,8 +35,8 @@
         </tr>
         {{range .videos}}
         <tr>
-            <td>{{.ID}} {{.Title}}</td>
-            <td>{{.URL}}</td>
+            <td><a href="/video/{{.ID}}">{{.Title}}</a></td>
+            <td><a href="{{.URL}}">{{.URL}}</a></td>
             <td>{{.Length}}</td>
             <td>{{.Status}}</td>
             <td>

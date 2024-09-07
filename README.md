@@ -23,6 +23,7 @@ docker build -t server .
 docker run --rm -it \
   -p 3000:8080 \
   --env YTDLP_SITE_ADMIN_INITIAL_PASSWORD=abc123 \
+  --env YTDLP_SITE_SESSION_AUTH_KEY=avowt7n8 \
   server
 
 docker run --rm -it \

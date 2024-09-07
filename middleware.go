@@ -19,6 +19,7 @@ func authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		userID, ok := session.Values["user_id"]
 		if !ok {
 			fmt.Println("authMiddleware: session does not contain user_id. Redirect to /login")
+			// return c.String(http.StatusForbidden, "not logged in")
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 		fmt.Println("set user_id", userID, "in context")

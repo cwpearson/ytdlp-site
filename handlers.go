@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -99,32 +98,22 @@ func downloadPostHandler(c echo.Context) error {
 
 type Meta struct {
 	title string
-	ext   string
 }
 
 func getMeta(url string) (Meta, error) {
-	cmd := exec.Command("yt-dlp", "--simulate", "--print", "%(title)s.%(ext)s", url)
+	cmd := exec.Command("yt-dlp",
+		"--simulate", "--print", "%(title)s",
+		url)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println("getTitle error:", err)
+		fmt.Println("getTitle error:", err, stdout.String())
 		return Meta{}, err
 	} else {
-
-		isDot := func(r rune) bool {
-			return r == '.'
-		}
-
-		fields := strings.FieldsFunc(strings.TrimSpace(stdout.String()), isDot)
-		if len(fields) < 2 {
-			return Meta{}, errors.New("couldn't parse ytdlp output")
-		}
-
 		return Meta{
-			title: strings.Join(fields[:len(fields)-1], "."),
-			ext:   fields[len(fields)-1],
+			title: strings.TrimSpace(stdout.String()),
 		}, nil
 	}
 }
@@ -183,7 +172,7 @@ func humanSize(bytes int64) string {
 }
 
 func startDownload(videoID uint, videoURL string) {
-	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "downloading")
+	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "metadata")
 
 	meta, err := getMeta(videoURL)
 	if err != nil {
@@ -193,15 +182,21 @@ func startDownload(videoID uint, videoURL string) {
 	fmt.Println("set video title:", meta.title)
 	db.Model(&Video{}).Where("id = ?", videoID).Update("title", meta.title)
 
-	videoFilename := fmt.Sprintf("%d-%s.%s", videoID, meta.title, meta.ext)
+	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "downloading")
+	videoFilename := fmt.Sprintf("%d-%s.mp4", videoID, meta.title)
 	videoFilepath := filepath.Join(getDownloadDir(), "video", videoFilename)
-	cmd := exec.Command("yt-dlp", "-o", videoFilepath, videoURL)
+	cmd := exec.Command("yt-dlp",
+		"-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
+		"--recode-video", "mp4",
+		"-o", videoFilepath,
+		videoURL)
 	err = cmd.Run()
 	if err != nil {
 		db.Model(&Video{}).Where("id = ?", videoID).Update("status", "failed")
 		return
 	}
 
+	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "audio")
 	audioFilename := fmt.Sprintf("%d-%s.mp3", videoID, meta.title)
 	audioFilepath := filepath.Join(getDownloadDir(), "audio", audioFilename)
 	audioDir := filepath.Dir(audioFilepath)
