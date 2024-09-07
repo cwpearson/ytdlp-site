@@ -255,6 +255,20 @@ func videosHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "videos.html", map[string]interface{}{"videos": videos})
 }
 
+func videoHandler(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var video Video
+	if err := db.First(&video, id).Error; err != nil {
+		return c.Redirect(http.StatusSeeOther, "/videos")
+	}
+
+	return c.Render(http.StatusOK, "video.html",
+		map[string]interface{}{
+			"video":       video,
+			"downloadDir": getDownloadDir(),
+		})
+}
+
 func videoCancelHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var video Video
