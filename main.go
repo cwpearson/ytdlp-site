@@ -51,7 +51,8 @@ func main() {
 	}
 
 	// Migrate the schema
-	db.AutoMigrate(&Video{}, &User{})
+	db.AutoMigrate(&Video{}, &User{}, &TempURL{})
+	go PeriodicCleanup()
 
 	// create a user
 	// FIXME: only if this user doesn't exist
@@ -98,7 +99,7 @@ func main() {
 	staticGroup := e.Group("/downloads")
 	staticGroup.Use(authMiddleware)
 	staticGroup.Static("/", getDownloadDir())
-	// e.Static("/downloads", getDownloadDir())
+	e.GET("/temp/:token", tempHandler)
 
 	store.Options = &sessions.Options{
 		Path:     "/",

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -25,6 +28,12 @@ type User struct {
 	gorm.Model
 	Username string `gorm:"unique"`
 	Password string
+}
+
+type TempURL struct {
+	Token     string `gorm:"uniqueIndex"`
+	FilePath  string
+	ExpiresAt time.Time
 }
 
 type DownloadStatus struct {
@@ -80,4 +89,51 @@ func (dm *DownloadManager) RemoveStatus(id uint) {
 	dm.mutex.Lock()
 	defer dm.mutex.Unlock()
 	delete(dm.downloads, id)
+}
+
+func generateToken() string {
+	uuidObj := uuid.Must(uuid.NewV7())
+	return uuidObj.String()
+}
+
+func CreateTempURL(filePath string) (TempURL, error) {
+
+	token := generateToken()
+	expiration := time.Now().Add(24 * time.Hour)
+
+	tempURL := TempURL{
+		Token:     token,
+		FilePath:  filePath,
+		ExpiresAt: expiration,
+	}
+
+	if err := db.Create(&tempURL).Error; err != nil {
+		return TempURL{}, errors.New("failed to create temporary URL")
+	}
+
+	return tempURL, nil
+}
+
+func cleanupExpiredURLs() {
+	result := db.Where("expires_at < ?", time.Now()).Delete(&TempURL{})
+	if result.Error != nil {
+		fmt.Printf("Error cleaning up expired URLs: %v\n", result.Error)
+	} else {
+		fmt.Printf("Cleaned up %d expired temporary URLs\n", result.RowsAffected)
+	}
+}
+
+func vacuumDatabase() {
+	if err := db.Exec("VACUUM").Error; err != nil {
+		fmt.Println(err)
+	}
+}
+
+func PeriodicCleanup() {
+	ticker := time.NewTicker(12 * time.Hour)
+	for range ticker.C {
+		fmt.Println("PeriodicCleanup...")
+		cleanupExpiredURLs()
+		vacuumDatabase()
+	}
 }

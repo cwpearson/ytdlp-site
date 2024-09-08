@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -257,10 +258,18 @@ func videoHandler(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
 
+	downloadDir := getDownloadDir()
+
+	tempURL, err := CreateTempURL(filepath.Join(downloadDir, "video", video.VideoFilename))
+	if err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, "video.html",
 		map[string]interface{}{
 			"video":       video,
-			"downloadDir": getDownloadDir(),
+			"downloadDir": downloadDir,
+			"tempURL":     fmt.Sprintf("/temp/%s", tempURL.Token),
 		})
 }
 
@@ -311,4 +320,15 @@ func videoDeleteHandler(c echo.Context) error {
 	db.Delete(&video)
 
 	return c.Redirect(http.StatusSeeOther, "/videos")
+}
+
+func tempHandler(c echo.Context) error {
+	token := c.Param("token")
+
+	var tempURL TempURL
+	if err := db.Where("token = ? AND expires_at > ?", token, time.Now()).First(&tempURL).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Invalid or expired token"})
+	}
+
+	return c.File(tempURL.FilePath)
 }
