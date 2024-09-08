@@ -2,18 +2,53 @@
 <html>
 
 <head>
-    <title>Downloaded Videos</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.video.Title}}</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .video-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        video {
+            width: 100%;
+            max-width: 600px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            .video-container {
+                max-width: 100%;
+            }
+
+            video {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <h1>Downloaded Video {{.video.Title}}</h1>
-
-    <video controls playsinline width="250" preload="metadata">
-        <source src="{{.tempURL}}" type="video/mp4" />
-    </video>
-
+    <h1>{{.video.Title}}</h1>
+    <div class="video-container">
+        <video controls playsinline preload="metadata">
+            <source src="{{.tempURL}}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
 </body>
 
 </html>
