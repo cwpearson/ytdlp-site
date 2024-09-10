@@ -31,7 +31,6 @@
         <tr>
             <th>Title</th>
             <th>URL</th>
-            <th>Length</th>
             <th>Status</th>
             <th>Actions</th>
         </tr>
@@ -45,12 +44,9 @@
                 {{end}}
             </td>
             <td><a href="{{.URL}}">{{.URL}}</a></td>
-            <td>{{.Length}}</td>
             <td>{{.Status}}</td>
             <td>
                 {{if eq .Status "completed"}}
-                <a href="/downloads/video/{{.VideoFilename}}" download>Download Video ({{.VideoSize}})</a> |
-                <a href="/downloads/audio/{{.AudioFilename}}" download>Download Audio ({{.AudioSize}})</a>
                 {{else if eq .Status "failed"}}
                 <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
                     <button type="submit">Restart</button>

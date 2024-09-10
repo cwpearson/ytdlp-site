@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.video.Title}}</title>
+    <title>{{.original.Title}}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,13 +42,43 @@
 </head>
 
 <body>
-    <h1>{{.video.Title}}</h1>
+
+    <h1>{{.original.Title}}</h1>
+
+    {{range .videos}}
+    {{if eq .Status "completed"}}
+    <h2>{{.Source}} {{.Width}} x {{.Height}} @ {{.FPS}}</h2>
     <div class="video-container">
         <video controls playsinline preload="metadata">
-            <source src="{{.tempURL}}" type="video/mp4">
+            <source src="/temp/{{.Token}}" type="video/mp4">
             Your browser does not support the video tag.
         </video>
     </div>
+    <div class="video-download">
+        <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
+    </div>
+    {{else}}
+    <h2>Video {{.Source}} {{.Status}}</h2>
+    {{end}}
+    {{end}}
+
+    {{range .audios}}
+    {{if eq .Status "completed"}}
+    <h2>{{.Rate}}</h2>
+    <div class="audio-container">
+        <audio controls playsinline preload="metadata">
+            <source src="/temp/{{.Token}}">
+            Your browser does not support the audio tag.
+        </audio>
+    </div>
+    <div class="audio-download">
+        <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
+    </div>
+    {{else}}
+    <h2>Audio {{.Status}}</h2>
+    {{end}}
+    {{end}}
+
 </body>
 
 </html>

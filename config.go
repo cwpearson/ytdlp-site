@@ -6,12 +6,12 @@ import (
 	"os"
 )
 
-func getDownloadDir() string {
-	value, exists := os.LookupEnv("YTDLP_SITE_DOWNLOAD_DIR")
+func getDataDir() string {
+	value, exists := os.LookupEnv("YTDLP_SITE_DATA_DIR")
 	if exists {
 		return value
 	}
-	return "downloads"
+	return "data"
 }
 
 func getConfigDir() string {

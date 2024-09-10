@@ -28,10 +28,10 @@ docker run --rm -it \
 
 docker run --rm -it \
   -p 3000:8080 \
-  --env YTDLP_SITE_DOWNLOAD_DIR=/downloads \
+  --env YTDLP_SITE_DATA_DIR=/data \
   --env YTDLP_SITE_CONFIG_DIR=/config \
   --env YTDLP_SITE_ADMIN_INITIAL_PASSWORD=abc123 \
-  -v $(realpath downloads):/downloads \
+  -v $(realpath data):/data \
   server
 ```
 

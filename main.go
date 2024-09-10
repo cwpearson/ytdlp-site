@@ -51,7 +51,7 @@ func main() {
 	}
 
 	// Migrate the schema
-	db.AutoMigrate(&Video{}, &User{}, &TempURL{})
+	db.AutoMigrate(&Original{}, &Video{}, &Audio{}, &User{}, &TempURL{})
 	go PeriodicCleanup()
 
 	// create a user
@@ -96,9 +96,9 @@ func main() {
 	e.POST("/video/:id/restart", videoRestartHandler, authMiddleware)
 	e.POST("/video/:id/delete", videoDeleteHandler, authMiddleware)
 
-	staticGroup := e.Group("/downloads")
+	staticGroup := e.Group("/data")
 	staticGroup.Use(authMiddleware)
-	staticGroup.Static("/", getDownloadDir())
+	staticGroup.Static("/", getDataDir())
 	e.GET("/temp/:token", tempHandler)
 
 	store.Options = &sessions.Options{

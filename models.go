@@ -11,17 +11,40 @@ import (
 	"gorm.io/gorm"
 )
 
+type Original struct {
+	gorm.Model
+	UserID uint
+	URL    string
+	Title  string
+	Author string
+	Status string // "pending", "metadata", "downloading", "completed", "failed", "cancelled"
+}
+
 type Video struct {
 	gorm.Model
-	URL           string
-	Title         string
-	VideoFilename string
-	AudioFilename string
-	UserID        uint
-	Length        string
-	AudioSize     string
-	VideoSize     string
-	Status        string // "pending", "downloading", "completed", "failed", "cancelled"
+	OriginalID uint // Original.ID
+	Width      uint
+	Height     uint
+	FPS        float64
+	Length     string
+	Size       string
+	Type       string
+	Codec      string
+	Filename   string
+	Status     string // "pending", "completed"
+	Source     string // "original", "ffmpeg"
+}
+
+type Audio struct {
+	gorm.Model
+	OriginalID uint // Original.ID
+	Rate       string
+	Length     string
+	Size       string
+	Type       string
+	Codec      string
+	Filename   string
+	Status     string // "pending", "completed", "failed"
 }
 
 type User struct {
