@@ -46,10 +46,9 @@
     <h1>{{.original.Title}}</h1>
 
     {{range .videos}}
-    {{if eq .Status "completed"}}
     <h2>{{.Source}} {{.Width}} x {{.Height}} @ {{.FPS}}</h2>
     <div class="video-container">
-        <video controls playsinline preload="metadata">
+        <video controls playsinline preload="none">
             <source src="/temp/{{.Token}}" type="video/mp4">
             Your browser does not support the video tag.
         </video>
@@ -57,16 +56,12 @@
     <div class="video-download">
         <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
     </div>
-    {{else}}
-    <h2>Video {{.Source}} {{.Status}}</h2>
-    {{end}}
     {{end}}
 
     {{range .audios}}
-    {{if eq .Status "completed"}}
     <h2>{{.Rate}}</h2>
     <div class="audio-container">
-        <audio controls playsinline preload="metadata">
+        <audio controls playsinline preload="none">
             <source src="/temp/{{.Token}}">
             Your browser does not support the audio tag.
         </audio>
@@ -74,9 +69,6 @@
     <div class="audio-download">
         <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
     </div>
-    {{else}}
-    <h2>Audio {{.Status}}</h2>
-    {{end}}
     {{end}}
 
 </body>

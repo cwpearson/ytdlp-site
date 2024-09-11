@@ -22,7 +22,6 @@ func authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			// return c.String(http.StatusForbidden, "not logged in")
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
-		fmt.Println("set user_id", userID, "in context")
 		c.Set("user_id", userID)
 		return next(c)
 	}

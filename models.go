@@ -22,7 +22,9 @@ type Original struct {
 
 type Video struct {
 	gorm.Model
-	OriginalID uint // Original.ID
+	OriginalID uint   // Original.ID
+	Source     string // "original", "transcode"
+	Filename   string
 	Width      uint
 	Height     uint
 	FPS        float64
@@ -30,9 +32,25 @@ type Video struct {
 	Size       string
 	Type       string
 	Codec      string
-	Filename   string
-	Status     string // "pending", "completed"
-	Source     string // "original", "ffmpeg"
+}
+
+type Transcode struct {
+	gorm.Model
+	Status     string // "pending", "running", "failed"
+	SrcID      uint   // Video.ID of the source file
+	OriginalID uint   // Original.ID
+	SrcKind    string // "video", "audio"
+	DstKind    string // "video", "audio"
+	TimeSubmit time.Time
+	TimeStart  time.Time
+
+	// video fields
+	Height uint // target height
+	Width  uint // target width
+	FPS    uint // target FPS
+
+	// audio & video fields
+	Rate uint
 }
 
 type Audio struct {
@@ -138,7 +156,8 @@ func CreateTempURL(filePath string) (TempURL, error) {
 }
 
 func cleanupExpiredURLs() {
-	result := db.Where("expires_at < ?", time.Now()).Delete(&TempURL{})
+	fmt.Println("cleanupExpiredURLs...")
+	result := db.Unscoped().Where("expires_at < ?", time.Now()).Delete(&TempURL{})
 	if result.Error != nil {
 		fmt.Printf("Error cleaning up expired URLs: %v\n", result.Error)
 	} else {
@@ -153,9 +172,10 @@ func vacuumDatabase() {
 }
 
 func PeriodicCleanup() {
-	ticker := time.NewTicker(12 * time.Hour)
+	cleanupExpiredURLs()
+	vacuumDatabase()
+	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
-		fmt.Println("PeriodicCleanup...")
 		cleanupExpiredURLs()
 		vacuumDatabase()
 	}

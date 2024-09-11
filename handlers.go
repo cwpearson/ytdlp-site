@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -104,7 +103,10 @@ type Meta struct {
 }
 
 func getMeta(url string) (Meta, error) {
-	cmd := exec.Command("yt-dlp", "--simulate", "--print", "%(title)s.%(ext)s", url)
+	ytdlp := "yt-dlp"
+	args := []string{"--simulate", "--print", "%(title)s.%(ext)s", url}
+	fmt.Println(ytdlp, strings.Join(args, " "))
+	cmd := exec.Command(ytdlp, args...)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -288,92 +290,71 @@ func getVideoMeta(path string) (VideoMeta, error) {
 	}, nil
 }
 
-func videoToAudio(audioID uint, bitrate uint, videoFilepath string) {
-	audioFilename := uuid.Must(uuid.NewV7()).String()
-	audioFilename = fmt.Sprintf("%s.mp3", audioFilename)
-	audioFilepath := filepath.Join(getDataDir(), audioFilename)
-	audioDir := filepath.Dir(audioFilepath)
-	fmt.Println("Create", audioDir)
-	err := os.MkdirAll(audioDir, 0700)
-	if err != nil {
-		fmt.Println("Error: couldn't create", audioDir)
-		db.Model(&Audio{}).Where("id = ?", audioID).Update("status", "failed")
-		return
-	}
-	ffmpeg := "ffmpeg"
-	ffmpegArgs := []string{"-i", videoFilepath, "-vn", "-acodec",
-		"mp3", "-b:a",
-		fmt.Sprintf("%dk", bitrate),
-		audioFilepath}
-	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
-	cmd := exec.Command(ffmpeg, ffmpegArgs...)
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Error: convert to audio file", videoFilepath, "->", audioFilepath)
+func processOriginal(originalID uint, videoFilename string, origMeta Meta) {
+
+	videoFilepath := filepath.Join(getDataDir(), videoFilename)
+	_, err := os.Stat(videoFilepath)
+	if os.IsNotExist(err) {
+		fmt.Println("Skipping non-existant file for processOriginal")
 		return
 	}
 
-	fileSize, err := getSize(audioFilepath)
+	// create video entry for original
+	video := Video{
+		OriginalID: originalID,
+		Filename:   videoFilename,
+		Source:     "original",
+		Type:       origMeta.ext,
+	}
+	fmt.Println("create Video", video)
+	if err := db.Create(&video).Error; err != nil {
+		fmt.Println(err)
+	}
+
+	videoMeta, err := getVideoMeta(videoFilepath)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(videoMeta)
+		db.Model(&Video{}).Where("id = ?", video.ID).Update("fps", videoMeta.fps)
+		db.Model(&Video{}).Where("id = ?", video.ID).Update("width", videoMeta.width)
+		db.Model(&Video{}).Where("id = ?", video.ID).Update("height", videoMeta.height)
+	}
+
+	videoSize, err := getSize(videoFilepath)
 	if err == nil {
-		db.Model(&Audio{}).Where("id = ?", audioID).Update("size", humanSize(fileSize))
+		db.Model(&Video{}).Where("id = ?", video.ID).Update("size", humanSize(videoSize))
 	}
 
-	db.Model(&Audio{}).Where("id = ?", audioID).Update("filename", audioFilename)
-	db.Model(&Audio{}).Where("id = ?", audioID).Update("status", "completed")
-}
-
-func videoToVideo(videoID uint, height uint, videoFilepath string) {
-	dstFilename := uuid.Must(uuid.NewV7()).String()
-	dstFilename = fmt.Sprintf("%s.mp4", dstFilename)
-	dstFilepath := filepath.Join(getDataDir(), dstFilename)
-	dstDir := filepath.Dir(dstFilepath)
-	fmt.Println("Create", dstDir)
-	err := os.MkdirAll(dstDir, 0700)
-	if err != nil {
-		fmt.Println("Error: couldn't create", dstDir)
-		db.Model(&Video{}).Where("id = ?", videoID).Update("status", "failed")
-		return
-	}
-	var audioBitrate uint = 160
-	if height <= 144 {
-		audioBitrate = 64
-	} else if height <= 240 {
-		audioBitrate = 96
-	} else if height < 720 {
-		audioBitrate = 128
+	// create audio transcodes
+	for _, bitrate := range []uint{64, 96, 128, 160, 192} {
+		t := Transcode{
+			SrcID:      video.ID,
+			OriginalID: originalID,
+			SrcKind:    "video",
+			DstKind:    "audio",
+			Rate:       bitrate,
+			TimeSubmit: time.Now(),
+			Status:     "pending",
+		}
+		db.Create(&t)
 	}
 
-	ffmpeg := "ffmpeg"
-	ffmpegArgs := []string{"-i", videoFilepath,
-		"-vf", fmt.Sprintf("scale=-2:%d", height), "-c:v", "libx264",
-		"-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", audioBitrate),
-		dstFilepath}
-	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
-	cmd := exec.Command(ffmpeg, ffmpegArgs...)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("Error: convert to video file", videoFilepath, "->", dstFilepath, stdout.String(), stderr.String())
-		return
+	// create video transcodes
+	for _, targetHeight := range []uint{144, 240, 360, 480, 720, 1080} {
+		if targetHeight <= videoMeta.height {
+			t := Transcode{
+				SrcID:      video.ID,
+				OriginalID: originalID,
+				SrcKind:    "video",
+				DstKind:    "video",
+				Height:     targetHeight,
+				TimeSubmit: time.Now(),
+				Status:     "pending",
+			}
+			db.Create(&t)
+		}
 	}
-	db.Model(&Video{}).Where("id = ?", videoID).Update("filename", dstFilename)
-
-	fileSize, err := getSize(dstFilepath)
-	if err == nil {
-		db.Model(&Video{}).Where("id = ?", videoID).Update("size", humanSize(fileSize))
-	}
-
-	meta, err := getVideoMeta(dstFilepath)
-	fmt.Println("meta for", dstFilepath, meta)
-	if err == nil {
-		db.Model(&Video{}).Where("id = ?", videoID).Update("width", meta.width)
-		db.Model(&Video{}).Where("id = ?", videoID).Update("height", meta.height)
-		db.Model(&Video{}).Where("id = ?", videoID).Update("fps", meta.fps)
-	}
-
-	db.Model(&Video{}).Where("id = ?", videoID).Update("status", "completed")
 }
 
 func startDownload(originalID uint, videoURL string) {
@@ -403,59 +384,7 @@ func startDownload(originalID uint, videoURL string) {
 	}
 	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "completed")
 
-	// create video entry for original
-	video := Video{
-		OriginalID: originalID,
-		Filename:   videoFilename,
-		Source:     "original",
-		Type:       origMeta.ext,
-		Status:     "completed",
-	}
-	if err := db.Create(&video).Error; err != nil {
-		fmt.Println(err)
-	}
-
-	videoMeta, err := getVideoMeta(videoFilepath)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(videoMeta)
-		db.Model(&Video{}).Where("id = ?", video.ID).Update("fps", videoMeta.fps)
-		db.Model(&Video{}).Where("id = ?", video.ID).Update("width", videoMeta.width)
-		db.Model(&Video{}).Where("id = ?", video.ID).Update("height", videoMeta.height)
-	}
-
-	videoSize, err := getSize(videoFilepath)
-	if err == nil {
-		db.Model(&Video{}).Where("id = ?", video.ID).Update("size", humanSize(videoSize))
-	}
-
-	// create audio transcodes
-	for _, bitrate := range []uint{64, 96, 128, 160, 192} {
-		audio := Audio{
-			OriginalID: originalID,
-			Rate:       fmt.Sprintf("%dk", bitrate),
-			Type:       "mp3",
-			Status:     "pending",
-		}
-		db.Create(&audio)
-		go videoToAudio(audio.ID, bitrate, videoFilepath)
-	}
-
-	// create video transcodes
-	for _, targetHeight := range []uint{144, 240, 360, 480, 720, 1080} {
-		if targetHeight <= videoMeta.height {
-			newVideo := Video{
-				OriginalID: originalID,
-				Type:       "mp4",
-				Status:     "pending",
-				Source:     "transcode",
-			}
-			db.Create(&newVideo)
-			videoToVideo(newVideo.ID, targetHeight, videoFilepath)
-		}
-	}
-
+	processOriginal(originalID, videoFilename, origMeta)
 }
 
 func videosHandler(c echo.Context) error {
@@ -525,8 +454,6 @@ func videoCancelHandler(c echo.Context) error {
 	}
 
 	// Cancel the download (this is a simplified version, you might need to implement a more robust cancellation mechanism)
-	video.Status = "cancelled"
-	db.Save(&video)
 
 	return c.Redirect(http.StatusSeeOther, "/videos")
 }
@@ -552,7 +479,10 @@ func videoDeleteHandler(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
 
-	// TODO: delete all files
+	fmt.Println("Delete Transcode entries for Original", id)
+	db.Delete(&Transcode{}, "original_id = ?", id)
+
+	// delete videos
 	var videos []Video
 	db.Where("original_id = ?", id).Find(&videos)
 	for _, video := range videos {
@@ -563,8 +493,9 @@ func videoDeleteHandler(c echo.Context) error {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(videos)
+	db.Delete(&Video{}, "original_id = ?", id)
 
+	// delete audios
 	var audios []Audio
 	db.Where("original_id = ?", id).Find(&audios)
 	for _, audio := range audios {
@@ -575,9 +506,9 @@ func videoDeleteHandler(c echo.Context) error {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(audios)
+	db.Delete(&Video{}, "original_id = ?", id)
 
-	// Delete from database
+	// Delete original
 	db.Delete(&orig)
 
 	return c.Redirect(http.StatusSeeOther, "/videos")

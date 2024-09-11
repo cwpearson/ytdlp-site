@@ -51,7 +51,7 @@ func main() {
 	}
 
 	// Migrate the schema
-	db.AutoMigrate(&Original{}, &Video{}, &Audio{}, &User{}, &TempURL{})
+	db.AutoMigrate(&Original{}, &Video{}, &Audio{}, &User{}, &TempURL{}, &Transcode{})
 	go PeriodicCleanup()
 
 	// create a user
@@ -107,6 +107,9 @@ func main() {
 		HttpOnly: true,
 		Secure:   false, // needed for session to work over http
 	}
+
+	// start the transcode worker
+	go transcodeWorker()
 
 	// Start server
 	e.Logger.Fatal(e.Start(":8080"))
