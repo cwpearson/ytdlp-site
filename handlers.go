@@ -472,19 +472,14 @@ func videoRestartHandler(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/videos")
 }
 
-func videoDeleteHandler(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
-	var orig Original
-	if err := db.First(&orig, id).Error; err != nil {
-		return c.Redirect(http.StatusSeeOther, "/videos")
-	}
+func deleteTranscodes(originalID int) {
+	fmt.Println("Delete Transcode entries for Original", originalID)
+	db.Delete(&Transcode{}, "original_id = ?", originalID)
+}
 
-	fmt.Println("Delete Transcode entries for Original", id)
-	db.Delete(&Transcode{}, "original_id = ?", id)
-
-	// delete videos
+func deleteTranscodedVideos(originalID int) {
 	var videos []Video
-	db.Where("original_id = ?", id).Find(&videos)
+	db.Where("original_id = ?", originalID).Where("source = ?", "transcoded").Find(&videos)
 	for _, video := range videos {
 		path := filepath.Join(getDataDir(), video.Filename)
 		fmt.Println("remove", path)
@@ -493,11 +488,27 @@ func videoDeleteHandler(c echo.Context) error {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ?", id)
+	db.Delete(&Video{}, "original_id = ?", originalID)
+}
 
+func deleteOriginalVideos(originalID int) {
+	var videos []Video
+	db.Where("original_id = ?", originalID).Where("source = ?", "original").Find(&videos)
+	for _, video := range videos {
+		path := filepath.Join(getDataDir(), video.Filename)
+		fmt.Println("remove", path)
+		err := os.Remove(path)
+		if err != nil {
+			fmt.Println("error removing", path, err)
+		}
+	}
+	db.Delete(&Video{}, "original_id = ?", originalID)
+}
+
+func deleteAudios(originalID int) {
 	// delete audios
 	var audios []Audio
-	db.Where("original_id = ?", id).Find(&audios)
+	db.Where("original_id = ?", originalID).Find(&audios)
 	for _, audio := range audios {
 		path := filepath.Join(getDataDir(), audio.Filename)
 		fmt.Println("remove", path)
@@ -506,11 +517,22 @@ func videoDeleteHandler(c echo.Context) error {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ?", id)
+	db.Delete(&Video{}, "original_id = ?", originalID)
+}
 
-	// Delete original
+func videoDeleteHandler(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var orig Original
+	if err := db.First(&orig, id).Error; err != nil {
+		return c.Redirect(http.StatusSeeOther, "/videos")
+	}
+
+	deleteTranscodes(id)
+	deleteTranscodedVideos(id)
+	deleteOriginalVideos(id)
+	deleteAudios(id)
+
 	db.Delete(&orig)
-
 	return c.Redirect(http.StatusSeeOther, "/videos")
 }
 
@@ -524,3 +546,13 @@ func tempHandler(c echo.Context) error {
 
 	return c.File(tempURL.FilePath)
 }
+
+// func processHandler(c echo.Context) error {
+// 	id, _ := strconv.Atoi(c.Param("id"))
+
+// 	deleteTranscodes(id)
+// 	deleteAudios(id)
+// 	deleteTranscodedVideos(id)
+
+// 	processOriginal(id)
+// }
