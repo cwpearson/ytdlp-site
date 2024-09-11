@@ -39,3 +39,15 @@ func getSessionAuthKey() ([]byte, error) {
 	}
 	return []byte{}, errors.New(fmt.Sprintf("please set %s", key))
 }
+
+var GitSHA string
+
+func getGitSHA() string {
+
+	if GitSHA == "" {
+		return "<not provided>"
+	} else {
+		return GitSHA
+	}
+
+}

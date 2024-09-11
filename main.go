@@ -37,6 +37,8 @@ func ensureAdminAccount(db *gorm.DB) error {
 
 func main() {
 
+	fmt.Printf("git SHA: %s\n", getGitSHA())
+
 	// Create config database
 	err := os.MkdirAll(getConfigDir(), 0700)
 	if err != nil {

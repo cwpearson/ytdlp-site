@@ -1,4 +1,6 @@
 FROM golang:1.23.0-bookworm as builder
+ARG GIT_SHA="<not provided>"
+
 
 RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests wget
 RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -O /usr/local/bin/yt-dlp \
@@ -8,7 +10,7 @@ ADD *.go /src/.
 ADD go.mod /src
 
 RUN cd /src && go mod tidy
-RUN cd /src && go build -o server *.go
+RUN cd /src && go build -ldflags "-X main.GitSHA=${GIT_SHA}" -o server *.go
 
 FROM debian:bookworm-slim
 
