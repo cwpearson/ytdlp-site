@@ -18,7 +18,8 @@ go run *.go
 ## Docker
 
 ```bash
-docker build -t server .
+docker build --build-arg GIT_SHA=$(git rev-parse HEAD) \
+  -t server .
 
 docker run --rm -it \
   -p 3000:8080 \

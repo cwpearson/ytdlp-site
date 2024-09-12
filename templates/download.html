@@ -11,6 +11,11 @@
     <h1>Download Video</h1>
     <form method="POST">
         <input type="url" name="url" placeholder="Video URL" required>
+        <input type="radio" id="audio-video" name="color" value="audio-video" checked>
+        <label for="audio-video">Audio/Video</label>
+        <input type="radio" id="audio-video" name="color" value="audio">
+        <label for="audio">Audio Only</label>
+
         <button type="submit">Download</button>
     </form>
     <a href="/videos">View Downloaded Videos</a>

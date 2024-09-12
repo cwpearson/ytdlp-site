@@ -31,6 +31,7 @@
         <tr>
             <th>Title</th>
             <th>URL</th>
+            <th>Type</th>
             <th>Status</th>
             <th>Actions</th>
         </tr>
@@ -44,6 +45,14 @@
                 {{end}}
             </td>
             <td><a href="{{.URL}}">{{.URL}}</a></td>
+            <td>
+                {{if .Audio}}
+                Audio
+                {{end}}
+                {{if .Video}}
+                Video
+                {{end}}
+            </td>
             <td>{{.Status}}</td>
             <td>
                 {{if eq .Status "completed"}}
@@ -68,6 +77,11 @@
     </table>
     <p><a href="/download">Download New Video</a></p>
     <p><a href="/logout">Logout</a></p>
+
+    <div class="footer">
+        <div class="build-id">Build ID: {{.build_id}}</div>
+    </div>
+
 </body>
 
 </html>

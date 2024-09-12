@@ -16,8 +16,10 @@ type Original struct {
 	UserID uint
 	URL    string
 	Title  string
-	Author string
+	Artist string
 	Status string // "pending", "metadata", "downloading", "completed", "failed", "cancelled"
+	Audio  bool   // video download requested
+	Video  bool   // audio download requested
 }
 
 type Video struct {
@@ -37,7 +39,7 @@ type Video struct {
 type Transcode struct {
 	gorm.Model
 	Status     string // "pending", "running", "failed"
-	SrcID      uint   // Video.ID of the source file
+	SrcID      uint   // Video.ID or Audio.ID of the source file
 	OriginalID uint   // Original.ID
 	SrcKind    string // "video", "audio"
 	DstKind    string // "video", "audio"
@@ -55,8 +57,9 @@ type Transcode struct {
 
 type Audio struct {
 	gorm.Model
-	OriginalID uint // Original.ID
-	Rate       string
+	OriginalID uint   // Original.ID
+	Source     string // "original", "transcode"
+	Rate       string // in kbps
 	Length     string
 	Size       string
 	Type       string

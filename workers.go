@@ -141,6 +141,56 @@ func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
 	db.Delete(&trans)
 }
 
+func audioToAudio(transID uint, bitrate uint, srcFilepath string) {
+
+	// determine destination path
+	dstFilename := uuid.Must(uuid.NewV7()).String()
+	dstFilename = fmt.Sprintf("%s.mp3", dstFilename)
+	dstFilepath := filepath.Join(getDataDir(), dstFilename)
+
+	// ensure destination directory
+	err := ensureDirFor(dstFilepath)
+	if err != nil {
+		fmt.Println("Error: couldn't create dir for ", dstFilepath, err)
+		db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "failed")
+		return
+	}
+
+	ffmpeg := "ffmpeg"
+	ffmpegArgs := []string{"-i", srcFilepath, "-vn", "-acodec",
+		"mp3", "-b:a",
+		fmt.Sprintf("%dk", bitrate),
+		dstFilepath}
+	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
+	cmd := exec.Command(ffmpeg, ffmpegArgs...)
+	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("Error: convert to audio file", srcFilepath, "->", dstFilepath)
+		db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "failed")
+		return
+	}
+
+	// look up original
+	var trans Transcode
+	db.First(&trans, "id = ?", transID)
+	var orig Original
+	db.First(&orig, "id = ?", trans.OriginalID)
+
+	// create audio record
+	audio := Audio{OriginalID: orig.ID, Filename: dstFilename, Rate: fmt.Sprintf("%dk", bitrate)}
+
+	fileSize, err := getSize(dstFilepath)
+	if err == nil {
+		audio.Size = humanSize(fileSize)
+	}
+
+	db.Create(&audio)
+
+	// complete transcode
+	db.Delete(&trans)
+}
+
 func transcodePending() {
 	fmt.Println("transcodePending...")
 
@@ -175,6 +225,17 @@ func transcodePending() {
 				fmt.Println("unexpected src/dst kinds for Transcode", trans)
 				db.Delete(&trans)
 			}
+		} else if trans.SrcKind == "audio" {
+
+			var srcAudio Audio
+			err = db.First(&srcAudio, "id = ?", trans.SrcID).Error
+			if err != nil {
+				fmt.Println("no such source audio for audio Transcode", trans)
+				db.Delete(&trans)
+				continue
+			}
+			srcFilepath := filepath.Join(getDataDir(), srcAudio.Filename)
+			audioToAudio(trans.ID, trans.Rate, srcFilepath)
 		} else {
 			fmt.Println("unexpected src kind for Transcode", trans)
 			db.Delete(&trans)
