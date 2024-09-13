@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -163,7 +164,9 @@ func getYtdlpExt(url string, args []string) (string, error) {
 		fmt.Println("getYtdlpExt error:", err, stdout.String())
 		return "", err
 	}
-	return strings.TrimSpace(stdout.String()), nil
+	result := strings.TrimSpace(stdout.String())
+	fmt.Println(result)
+	return result, nil
 }
 
 func getYtdlpMeta(url string, args []string) (Meta, error) {
@@ -361,6 +364,27 @@ func getVideoMeta(path string) (VideoMeta, error) {
 	}, nil
 }
 
+func getAudioDuration(path string) (float64, error) {
+
+	ffprobe := "ffprobe"
+	ffprobeArgs := []string{
+		"-v", "error",
+		"-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		path}
+	fmt.Println(ffprobe, strings.Join(ffprobeArgs, " "))
+	cmd := exec.Command(ffprobe, ffprobeArgs...)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("getAudioDuration error:", err, stdout.String())
+		return 0, err
+	}
+	durationStr := strings.TrimSpace(stdout.String())
+	return strconv.ParseFloat(durationStr, 64)
+}
+
 func getAudioBitrate(path string) (uint, error) {
 
 	ffprobe := "ffprobe"
@@ -381,12 +405,27 @@ func getAudioBitrate(path string) (uint, error) {
 		return 0, err
 	}
 	bitrateStr := strings.TrimSpace(stdout.String())
-	bitrate, err := strconv.ParseUint(bitrateStr, 10, 32)
-	if err != nil {
-		fmt.Println("getAudioBitrate error:", err)
-		return 0, err
+
+	// for opus files, or other files with variable birates, this may come back "N/A"
+
+	if bitrateStr == "N/A" {
+		size, err := getSize(path)
+		if err != nil {
+			return 0, err
+		}
+		dur, err := getAudioDuration(path)
+		if err != nil {
+			return 0, err
+		}
+		return uint(math.Round(float64(size) / dur)), nil
+	} else {
+		bitrate, err := strconv.ParseUint(bitrateStr, 10, 32)
+		if err != nil {
+			fmt.Println("getAudioBitrate error:", err)
+			return 0, err
+		}
+		return uint(bitrate), nil
 	}
-	return uint(bitrate), nil
 
 }
 
@@ -482,7 +521,7 @@ func processOriginal(originalID uint) {
 			fmt.Println(err)
 		} else {
 			fmt.Println(audioMeta)
-			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("rate", fmt.Sprintf("%dk", audioMeta.rate/1000))
+			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("kbps", fmt.Sprintf("%.1fk", float64(audioMeta.rate)/1000))
 		}
 
 		size, err := getSize(audioFilepath)

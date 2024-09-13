@@ -59,7 +59,7 @@ type Audio struct {
 	gorm.Model
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
-	Rate       string // in kbps
+	Kbps       string
 	Length     string
 	Size       string
 	Type       string

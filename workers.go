@@ -128,7 +128,7 @@ func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{OriginalID: orig.ID, Filename: audioFilename, Rate: fmt.Sprintf("%dk", bitrate)}
+	audio := Audio{OriginalID: orig.ID, Filename: audioFilename, Kbps: fmt.Sprintf("%dk", bitrate)}
 
 	fileSize, err := getSize(audioFilepath)
 	if err == nil {
@@ -141,7 +141,7 @@ func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
 	db.Delete(&trans)
 }
 
-func audioToAudio(transID uint, bitrate uint, srcFilepath string) {
+func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 
 	// determine destination path
 	dstFilename := uuid.Must(uuid.NewV7()).String()
@@ -159,7 +159,7 @@ func audioToAudio(transID uint, bitrate uint, srcFilepath string) {
 	ffmpeg := "ffmpeg"
 	ffmpegArgs := []string{"-i", srcFilepath, "-vn", "-acodec",
 		"mp3", "-b:a",
-		fmt.Sprintf("%dk", bitrate),
+		fmt.Sprintf("%dk", kbps),
 		dstFilepath}
 	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
 	cmd := exec.Command(ffmpeg, ffmpegArgs...)
@@ -178,7 +178,11 @@ func audioToAudio(transID uint, bitrate uint, srcFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{OriginalID: orig.ID, Filename: dstFilename, Rate: fmt.Sprintf("%dk", bitrate)}
+	audio := Audio{
+		OriginalID: orig.ID,
+		Filename:   dstFilename,
+		Kbps:       fmt.Sprintf("%dk", kbps),
+	}
 
 	fileSize, err := getSize(dstFilepath)
 	if err == nil {

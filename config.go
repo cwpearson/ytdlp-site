@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 )
@@ -28,7 +27,7 @@ func getAdminInitialPassword() (string, error) {
 	if exists {
 		return value, nil
 	}
-	return "", errors.New(fmt.Sprintf("please set %s", key))
+	return "", fmt.Errorf("please set %s", key)
 }
 
 func getSessionAuthKey() ([]byte, error) {
@@ -37,7 +36,7 @@ func getSessionAuthKey() ([]byte, error) {
 	if exists {
 		return []byte(value), nil
 	}
-	return []byte{}, errors.New(fmt.Sprintf("please set %s", key))
+	return []byte{}, fmt.Errorf("please set %s", key)
 }
 
 var GitSHA string
