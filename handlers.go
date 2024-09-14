@@ -534,8 +534,14 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		return
 	}
 	fmt.Printf("original metadata %v\n", origMeta)
-	db.Model(&Original{}).Where("id = ?", originalID).Update("title", origMeta.title)
-	db.Model(&Original{}).Where("id = ?", originalID).Update("artist", origMeta.artist)
+	err = db.Model(&Original{}).Where("id = ?", originalID).Updates(map[string]interface{}{
+		"title":  origMeta.title,
+		"artist": origMeta.artist,
+	}).Error
+	if err != nil {
+		db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+		return
+	}
 
 	// download original
 	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "downloading")
@@ -568,7 +574,11 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			Type:       origMeta.ext,
 		}
 		fmt.Println("create Audio", audio)
-		db.Create(&audio)
+		if db.Create(&audio).Error != nil {
+			fmt.Println("Couldn't create audio entry", err)
+			db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+			return
+		}
 	} else {
 		video := Video{
 			OriginalID: originalID,
@@ -577,7 +587,11 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			Type:       origMeta.ext,
 		}
 		fmt.Println("create Video", video)
-		db.Create(&video)
+		if db.Create(&video).Error != nil {
+			fmt.Println("Couldn't create video entry", err)
+			db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+			return
+		}
 	}
 
 	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "completed")
