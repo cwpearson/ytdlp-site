@@ -461,7 +461,7 @@ func processOriginal(originalID uint) {
 		}
 
 		// create video transcodes
-		for _, targetHeight := range []uint{144, 240, 360, 480, 720, 1080} {
+		for _, targetHeight := range []uint{144, 480, 720, 1080} {
 			if targetHeight <= videoMeta.height {
 				t := Transcode{
 					SrcID:      video.ID,
