@@ -39,7 +39,7 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 	var audioBitrate uint = 160
 	if height <= 144 {
 		audioBitrate = 64
-	} else if height <= 240 {
+	} else if height <= 480 {
 		audioBitrate = 96
 	} else if height < 720 {
 		audioBitrate = 128
@@ -74,7 +74,11 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 
 	fileSize, err := getSize(dstFilepath)
 	if err == nil {
-		video.Size = humanSize(fileSize)
+		video.Size = fileSize
+	}
+	length, err := getLength(dstFilepath)
+	if err == nil {
+		video.Length = length
 	}
 
 	meta, err := getVideoMeta(dstFilepath)
@@ -91,7 +95,7 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 	db.Delete(&trans)
 }
 
-func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
+func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 
 	// determine destination path
 	audioFilename := uuid.Must(uuid.NewV7()).String()
@@ -109,7 +113,7 @@ func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
 	ffmpeg := "ffmpeg"
 	ffmpegArgs := []string{"-i", videoFilepath, "-vn", "-acodec",
 		"mp3", "-b:a",
-		fmt.Sprintf("%dk", bitrate),
+		fmt.Sprintf("%dk", kbps),
 		audioFilepath}
 	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
 	cmd := exec.Command(ffmpeg, ffmpegArgs...)
@@ -128,11 +132,15 @@ func videoToAudio(transID uint, bitrate uint, videoFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{OriginalID: orig.ID, Filename: audioFilename, Kbps: fmt.Sprintf("%dk", bitrate)}
+	audio := Audio{OriginalID: orig.ID, Filename: audioFilename, Bps: kbps * 1000}
 
 	fileSize, err := getSize(audioFilepath)
 	if err == nil {
-		audio.Size = humanSize(fileSize)
+		audio.Size = fileSize
+	}
+	length, err := getLength(audioFilepath)
+	if err == nil {
+		audio.Length = length
 	}
 
 	db.Create(&audio)
@@ -181,12 +189,16 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 	audio := Audio{
 		OriginalID: orig.ID,
 		Filename:   dstFilename,
-		Kbps:       fmt.Sprintf("%dk", kbps),
+		Bps:        kbps * 1000,
 	}
 
 	fileSize, err := getSize(dstFilepath)
 	if err == nil {
-		audio.Size = humanSize(fileSize)
+		audio.Size = fileSize
+	}
+	length, err := getLength(dstFilepath)
+	if err == nil {
+		audio.Length = length
 	}
 
 	db.Create(&audio)

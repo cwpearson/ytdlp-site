@@ -338,6 +338,7 @@ type VideoMeta struct {
 	width  uint
 	height uint
 	fps    float64
+	length float64
 }
 
 type AudioMeta struct {
@@ -357,10 +358,15 @@ func getVideoMeta(path string) (VideoMeta, error) {
 	if err != nil {
 		return VideoMeta{}, err
 	}
+	length, err := getLength(path)
+	if err != nil {
+		return VideoMeta{}, err
+	}
 	return VideoMeta{
 		width:  w,
 		height: h,
 		fps:    fps,
+		length: length,
 	}, nil
 }
 
@@ -439,11 +445,17 @@ func processOriginal(originalID uint) {
 			db.Model(&Video{}).Where("id = ?", video.ID).Update("fps", videoMeta.fps)
 			db.Model(&Video{}).Where("id = ?", video.ID).Update("width", videoMeta.width)
 			db.Model(&Video{}).Where("id = ?", video.ID).Update("height", videoMeta.height)
+			db.Model(&Video{}).Where("id = ?", video.ID).Updates(map[string]interface{}{
+				"fps":    videoMeta.fps,
+				"width":  videoMeta.width,
+				"height": videoMeta.height,
+				"length": videoMeta.length,
+			})
 		}
 
 		videoSize, err := getSize(videoFilepath)
 		if err == nil {
-			db.Model(&Video{}).Where("id = ?", video.ID).Update("size", humanSize(videoSize))
+			db.Model(&Video{}).Where("id = ?", video.ID).Update("size", videoSize)
 		}
 
 		// create audio transcodes
@@ -489,12 +501,12 @@ func processOriginal(originalID uint) {
 			fmt.Println(err)
 		} else {
 			fmt.Println(audioMeta)
-			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("kbps", fmt.Sprintf("%.1fk", float64(audioMeta.rate)/1000))
+			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("bps", audioMeta.rate)
 		}
 
 		size, err := getSize(audioFilepath)
 		if err == nil {
-			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("size", humanSize(size))
+			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("size", size)
 		}
 
 		// create audio transcodes
@@ -566,12 +578,17 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		return
 	}
 
+	length, _ := getLength(dlFilepath)
+	size, _ := getSize(dlFilepath)
+
 	if audioOnly {
 		audio := Audio{
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
 			Type:       origMeta.ext,
+			Length:     length,
+			Size:       size,
 		}
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
@@ -585,6 +602,8 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			Filename:   dlFilename,
 			Source:     "original",
 			Type:       origMeta.ext,
+			Length:     length,
+			Size:       size,
 		}
 		fmt.Println("create Video", video)
 		if db.Create(&video).Error != nil {
@@ -610,12 +629,21 @@ func videosHandler(c echo.Context) error {
 }
 
 type VideoTemplate struct {
-	Video
+	Source     string
+	Width      uint
+	Height     uint
+	FPS        string
+	Size       string
+	Filename   string
+	StreamRate string
 	TempURL
 }
 
 type AudioTemplate struct {
-	Audio
+	Kbps       string
+	Size       string
+	Filename   string
+	StreamRate string
 	TempURL
 }
 
@@ -642,14 +670,36 @@ func videoHandler(c echo.Context) error {
 		if err != nil {
 			continue
 		}
-		videoURLs = append(videoURLs, VideoTemplate{video, tempURL})
+
+		rate := float64(video.Size) / video.Length
+
+		videoURLs = append(videoURLs, VideoTemplate{
+			Source:     video.Source,
+			Width:      video.Width,
+			Height:     video.Height,
+			FPS:        fmt.Sprintf("%.1f", video.FPS),
+			Size:       humanSize(video.Size),
+			Filename:   video.Filename,
+			StreamRate: fmt.Sprintf("%.1f KiB/s", rate/1024),
+			TempURL:    tempURL,
+		})
 	}
 	for _, audio := range audios {
 		tempURL, err := CreateTempURL(filepath.Join(dataDir, audio.Filename))
 		if err != nil {
 			continue
 		}
-		audioURLs = append(audioURLs, AudioTemplate{audio, tempURL})
+
+		kbps := float64(audio.Bps) / 1000
+		rate := float64(audio.Size) / audio.Length
+
+		audioURLs = append(audioURLs, AudioTemplate{
+			Kbps:       fmt.Sprintf("%.1f kbps", kbps),
+			Size:       humanSize(audio.Size),
+			Filename:   audio.Filename,
+			StreamRate: fmt.Sprintf("%.1f KiB/s", rate/1024),
+			TempURL:    tempURL,
+		})
 	}
 
 	return c.Render(http.StatusOK, "video.html",

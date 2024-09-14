@@ -30,8 +30,8 @@ type Video struct {
 	Width      uint
 	Height     uint
 	FPS        float64
-	Length     string
-	Size       string
+	Length     float64
+	Size       int64
 	Type       string
 	Codec      string
 }
@@ -59,9 +59,9 @@ type Audio struct {
 	gorm.Model
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
-	Kbps       string
-	Length     string
-	Size       string
+	Bps        uint
+	Length     float64
+	Size       int64
 	Type       string
 	Codec      string
 	Filename   string

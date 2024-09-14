@@ -54,7 +54,7 @@
         </video>
     </div>
     <div class="video-download">
-        <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
+        <a href="/data/{{.Filename}}" download>Download ({{.Size}}, {{.StreamRate}})</a>
     </div>
     {{end}}
 
@@ -67,7 +67,7 @@
         </audio>
     </div>
     <div class="audio-download">
-        <a href="/data/{{.Filename}}" download>Download ({{.Size}})</a>
+        <a href="/data/{{.Filename}}" download>Download ({{.Size}}, {{.StreamRate}})</a>
     </div>
     {{end}}
 
