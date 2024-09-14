@@ -17,6 +17,9 @@ import (
 	"gorm.io/gorm"
 )
 
+var ytdlpAudioOptions = []string{"-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]"}
+var ytdlpVideoOptions = []string{"-f", "bestaudio"}
+
 func registerHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "register.html", nil)
 }
@@ -191,13 +194,11 @@ func getYtdlpMeta(url string, args []string) (Meta, error) {
 }
 
 func getYtdlpAudioMeta(url string) (Meta, error) {
-	args := []string{"-f", "bestaudio"}
-	return getYtdlpMeta(url, args)
+	return getYtdlpMeta(url, ytdlpVideoOptions)
 }
 
 func getYtdlpVideoMeta(url string) (Meta, error) {
-	args := []string{"-f", "bestvideo+bestaudio/best"}
-	return getYtdlpMeta(url, args)
+	return getYtdlpMeta(url, ytdlpAudioOptions)
 }
 
 // return the length in seconds of a video file at `path`
@@ -576,9 +577,9 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 	var args []string
 	if audioOnly {
-		args = []string{"-f", "bestaudio"}
+		args = ytdlpVideoOptions
 	} else {
-		args = []string{"-f", "bestvideo+bestaudio/best"}
+		args = ytdlpAudioOptions
 	}
 
 	ytdlp := "yt-dlp"
