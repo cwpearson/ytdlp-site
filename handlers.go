@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -387,47 +386,15 @@ func getAudioDuration(path string) (float64, error) {
 }
 
 func getAudioBitrate(path string) (uint, error) {
-
-	ffprobe := "ffprobe"
-	ffprobeArgs := []string{
-		"-v", "quiet",
-		"-select_streams", "a:0",
-		"-show_entries", "stream=bit_rate",
-		"-of", "default=noprint_wrappers=1:nokey=1",
-		path}
-
-	fmt.Println(ffprobe, strings.Join(ffprobeArgs, " "))
-	cmd := exec.Command(ffprobe, ffprobeArgs...)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+	codec, err := getAudioFormat(path)
 	if err != nil {
-		fmt.Println("getAudioBitrate error:", err, stdout.String())
 		return 0, err
 	}
-	bitrateStr := strings.TrimSpace(stdout.String())
-
-	// for opus files, or other files with variable birates, this may come back "N/A"
-
-	if bitrateStr == "N/A" {
-		size, err := getSize(path)
-		if err != nil {
-			return 0, err
-		}
-		dur, err := getAudioDuration(path)
-		if err != nil {
-			return 0, err
-		}
-		return uint(math.Round(float64(size) / dur)), nil
+	if codec == "opus" {
+		return getFormatBitrate(path)
 	} else {
-		bitrate, err := strconv.ParseUint(bitrateStr, 10, 32)
-		if err != nil {
-			fmt.Println("getAudioBitrate error:", err)
-			return 0, err
-		}
-		return uint(bitrate), nil
+		return getStreamBitrate(path, 0)
 	}
-
 }
 
 func getAudioMeta(path string) (AudioMeta, error) {
