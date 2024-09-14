@@ -52,6 +52,13 @@ func main() {
 		panic("failed to connect database")
 	}
 
+	// set only a single connection so we don't actually have concurrent writes
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic("failed to retrieve database")
+	}
+	sqlDB.SetMaxOpenConns(1)
+
 	// Migrate the schema
 	db.AutoMigrate(&Original{}, &Video{}, &Audio{}, &User{}, &TempURL{}, &Transcode{})
 	go PeriodicCleanup()
