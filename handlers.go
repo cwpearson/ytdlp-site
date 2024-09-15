@@ -655,10 +655,14 @@ func videoHandler(c echo.Context) error {
 	}
 
 	var videos []Video
-	db.Where("original_id = ?", id).Find(&videos)
+	db.Where("original_id = ?", id).
+		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, height ASC").
+		Find(&videos)
 
 	var audios []Audio
-	db.Where("original_id = ?", id).Find(&audios)
+	db.Where("original_id = ?", id).
+		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, bps ASC").
+		Find(&audios)
 
 	dataDir := getDataDir()
 

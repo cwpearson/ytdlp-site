@@ -216,7 +216,12 @@ func transcodePending() {
 	// loop until no more pending jobs
 	for {
 		var trans Transcode
-		err := db.First(&trans, "status = ?", "pending").Error
+		err := db.Where("status = ?", "pending").
+			Order("CASE " +
+				"WHEN dst_kind = 'video' AND height = 480 THEN 0 " +
+				"WHEN dst_kind = 'audio' AND rate = 96 THEN 0 " +
+				"ELSE 1 END").First(&trans).Error
+		// err := db.First(&trans, "status = ?", "pending").Error
 		if err == gorm.ErrRecordNotFound {
 			fmt.Println("no pending transcode jobs")
 			break // no more pending jobs
