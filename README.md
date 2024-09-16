@@ -14,6 +14,7 @@ go run *.go
 
 * `YTDLP_SITE_ADMIN_INITIAL_PASSWORD`: password of the `admin` account, if the account does not exist
 * `YTDLP_SITE_SESSION_AUTH_KEY`: admin-selected secret key for the cookie store
+* `YTDLP_SITE_SECURE`: set to `ON` for HTTPS deployments
 
 ## Docker
 
@@ -50,4 +51,4 @@ Build and push this container to ghcr
 - [ ] Download playlists
 - [ ] change from Audio -> Video
 - [ ] Provide a better name for downloaded files
-- [ ] Environment variable to control whether "Secure" flag set on cookie
+- [x] Environment variable to control whether "Secure" flag set on cookie
