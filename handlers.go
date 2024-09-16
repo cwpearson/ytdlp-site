@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -629,22 +630,59 @@ func videosHandler(c echo.Context) error {
 }
 
 type VideoTemplate struct {
-	Source     string
-	Width      uint
-	Height     uint
-	FPS        string
-	Size       string
-	Filename   string
-	StreamRate string
+	Source           string
+	Width            uint
+	Height           uint
+	FPS              string
+	Size             string
+	Filename         string
+	DownloadFilename string
+	StreamRate       string
 	TempURL
 }
 
 type AudioTemplate struct {
-	Kbps       string
-	Size       string
-	Filename   string
-	StreamRate string
+	Kbps             string
+	Size             string
+	Filename         string
+	DownloadFilename string
+	StreamRate       string
 	TempURL
+}
+
+func makeNiceFilename(input string) string {
+	// Convert to lowercase
+	input = strings.ToLower(input)
+
+	// Replace spaces with underscores
+	input = strings.ReplaceAll(input, " ", "_")
+
+	// Replace common special characters
+	replacements := map[string]string{
+		"æ": "ae", "ø": "oe", "å": "aa", "ä": "ae", "ö": "oe", "ü": "ue",
+		"ß": "ss", "ñ": "n", "ç": "c", "œ": "oe",
+	}
+	for old, new := range replacements {
+		input = strings.ReplaceAll(input, old, new)
+	}
+
+	// Remove any remaining non-alphanumeric characters (except underscores)
+	reg := regexp.MustCompile("[^a-z0-9_\\.]+")
+	input = reg.ReplaceAllString(input, "")
+
+	// Trim leading/trailing underscores
+	input = strings.Trim(input, "_")
+
+	// Collapse multiple underscores into a single one
+	reg = regexp.MustCompile("_+")
+	input = reg.ReplaceAllString(input, "_")
+
+	// Ensure the filename is not empty
+	if input == "" {
+		input = "unnamed_file"
+	}
+
+	return input
 }
 
 func videoHandler(c echo.Context) error {
@@ -678,14 +716,15 @@ func videoHandler(c echo.Context) error {
 		rate := float64(video.Size) / video.Length
 
 		videoURLs = append(videoURLs, VideoTemplate{
-			Source:     video.Source,
-			Width:      video.Width,
-			Height:     video.Height,
-			FPS:        fmt.Sprintf("%.1f", video.FPS),
-			Size:       humanSize(video.Size),
-			Filename:   video.Filename,
-			StreamRate: fmt.Sprintf("%.1f KiB/s", rate/1024),
-			TempURL:    tempURL,
+			Source:           video.Source,
+			Width:            video.Width,
+			Height:           video.Height,
+			FPS:              fmt.Sprintf("%.1f", video.FPS),
+			Size:             humanSize(video.Size),
+			Filename:         video.Filename,
+			DownloadFilename: makeNiceFilename(orig.Title),
+			StreamRate:       fmt.Sprintf("%.1f KiB/s", rate/1024),
+			TempURL:          tempURL,
 		})
 	}
 	for _, audio := range audios {
@@ -698,11 +737,12 @@ func videoHandler(c echo.Context) error {
 		rate := float64(audio.Size) / audio.Length
 
 		audioURLs = append(audioURLs, AudioTemplate{
-			Kbps:       fmt.Sprintf("%.1f kbps", kbps),
-			Size:       humanSize(audio.Size),
-			Filename:   audio.Filename,
-			StreamRate: fmt.Sprintf("%.1f KiB/s", rate/1024),
-			TempURL:    tempURL,
+			Kbps:             fmt.Sprintf("%.1f kbps", kbps),
+			Size:             humanSize(audio.Size),
+			Filename:         audio.Filename,
+			DownloadFilename: makeNiceFilename(orig.Title),
+			StreamRate:       fmt.Sprintf("%.1f KiB/s", rate/1024),
+			TempURL:          tempURL,
 		})
 	}
 
