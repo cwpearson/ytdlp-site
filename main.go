@@ -110,11 +110,13 @@ func main() {
 	staticGroup.Static("/", getDataDir())
 	e.GET("/temp/:token", tempHandler)
 
+	secure := getSecure()
+
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   30 * 24 * 60 * 60, // seconds
 		HttpOnly: true,
-		Secure:   false, // needed for session to work over http
+		Secure:   secure,
 	}
 
 	// start the transcode worker

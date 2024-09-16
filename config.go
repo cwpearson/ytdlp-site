@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
+
+var GitSHA string
 
 func getDataDir() string {
 	value, exists := os.LookupEnv("YTDLP_SITE_DATA_DIR")
@@ -39,7 +42,16 @@ func getSessionAuthKey() ([]byte, error) {
 	return []byte{}, fmt.Errorf("please set %s", key)
 }
 
-var GitSHA string
+func getSecure() bool {
+	key := "YTDLP_SITE_SECURE"
+	if value, exists := os.LookupEnv(key); exists {
+		lower := strings.ToLower(value)
+		if lower == "on" || lower == "1" || lower == "true" || lower == "yes" {
+			return true
+		}
+	}
+	return false
+}
 
 func getGitSHA() string {
 
