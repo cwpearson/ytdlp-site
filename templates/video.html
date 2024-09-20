@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.original.Title}}</title>
+    <link rel="stylesheet" href="/static/style/common.css">
     <link rel="stylesheet" href="/static/style/video.css">
     {{template "footer-css" .}}
 </head>
@@ -13,31 +14,39 @@
 
     <h1>{{.original.Title}}</h1>
 
-    {{range .videos}}
-    <h2>{{.Source}} {{.Width}} x {{.Height}} @ {{.FPS}}</h2>
-    <div class="video-container">
-        <video controls playsinline preload="none">
-            <source src="/temp/{{.Token}}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
+    <div class="media-grid">
+        {{range .videos}}
+        <div class="media-card">
+            <h3>{{.Source}} {{.Width}} x {{.Height}} @ {{.FPS}}</h3>
+            <div class="video-container">
+                <video controls playsinline preload="none">
+                    <source src="/temp/{{.Token}}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="media-download">
+                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
+            </div>
+        </div>
+        {{end}}
     </div>
-    <div class="video-download">
-        <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
+    <div class="media-grid">
+        {{range .audios}}
+        <div class="media-card">
+            <h3>{{.Kbps}}</h3>
+            <div class="audio-container">
+                <audio controls playsinline preload="none">
+                    <source src="/temp/{{.Token}}">
+                    Your browser does not support the audio tag.
+                </audio>
+            </div>
+            <div class="media-download">
+                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
+            </div>
+        </div>
+        {{end}}
     </div>
-    {{end}}
 
-    {{range .audios}}
-    <h2>{{.Kbps}}</h2>
-    <div class="audio-container">
-        <audio controls playsinline preload="none">
-            <source src="/temp/{{.Token}}">
-            Your browser does not support the audio tag.
-        </audio>
-    </div>
-    <div class="audio-download">
-        <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
-    </div>
-    {{end}}
 
     <script src="/static/script/save-media-progress.js"></script>
 
