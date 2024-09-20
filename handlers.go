@@ -54,7 +54,10 @@ func loginHandler(c echo.Context) error {
 }
 
 func homeHandler(c echo.Context) error {
-	return c.Render(http.StatusOK, "home.html", nil)
+	return c.Render(http.StatusOK, "home.html",
+		map[string]interface{}{
+			"Footer": makeFooter(),
+		})
 }
 
 func loginPostHandler(c echo.Context) error {
@@ -99,7 +102,10 @@ func logoutHandler(c echo.Context) error {
 }
 
 func downloadHandler(c echo.Context) error {
-	return c.Render(http.StatusOK, "download.html", nil)
+	return c.Render(http.StatusOK, "download.html",
+		map[string]interface{}{
+			"Footer": makeFooter(),
+		})
 }
 
 func downloadPostHandler(c echo.Context) error {

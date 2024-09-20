@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style/common.css">
+    {{template "footer-css" .}}
     <title>Download Video</title>
 </head>
 
@@ -20,6 +22,8 @@
     </form>
     <a href="/videos">View Downloaded Videos</a>
     <a href="/logout">Logout</a>
+
+    {{template "footer" .}}
 </body>
 
 </html>
