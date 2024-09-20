@@ -9,38 +9,33 @@
     <link rel="stylesheet" href="/static/style/videos.css">
 </head>
 
+
+
 <body>
     <h1>Downloaded Videos</h1>
-    <table>
-        <tr>
-            <th>Title</th>
-            <th>Author</th>
-            <th>URL</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
+
+    <div class="video-list">
         {{range .videos}}
-        <tr>
-            <td>
+        <div class="video-card">
+            <div class="video-title">
                 {{if eq .Status "completed"}}
                 <a href="/video/{{.ID}}">{{.Title}}</a>
                 {{else}}
                 {{.Title}}
                 {{end}}
-            </td>
-            <td>{{.Artist}}</td>
-            <td><a href="{{.URL}}">{{.URL}}</a></td>
-            <td>
+            </div>
+            <div class="video-info">{{.Artist}}</div>
+            <div class="video-info"><a href="#">{{.URL}}</a></div>
+            <div class="video-info">{{.Status}}</div>
+            <div class="video-info">
                 {{if .Audio}}
                 Audio
                 {{end}}
                 {{if .Video}}
                 Video
                 {{end}}
-            </td>
-            <td>{{.Status}}</td>
-            <td>
+            </div>
+            <div class="video-options">
                 {{if eq .Status "completed"}}
                 <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
                     <button type="submit">Redo Processing</button>
@@ -54,10 +49,10 @@
                 <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
                     <button type="submit">Delete</button>
                 </form>
-            </td>
-        </tr>
+            </div>
+        </div>
         {{end}}
-    </table>
+    </div>
     <p><a href="/download">Download New Video</a></p>
     <p><a href="/logout">Logout</a></p>
 
