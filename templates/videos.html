@@ -7,9 +7,8 @@
     <meta http-equiv="refresh" content="10">
     <title>Downloaded Videos</title>
     <link rel="stylesheet" href="/static/style/videos.css">
+    {{template "footer-css" .}}
 </head>
-
-
 
 <body>
     <h1>Downloaded Videos</h1>
@@ -56,10 +55,7 @@
     <p><a href="/download">Download New Video</a></p>
     <p><a href="/logout">Logout</a></p>
 
-    <div class="footer">
-        <div class="build-id">Build ID: {{.build_id}}</div>
-    </div>
-
+    {{template "footer" .}}
 </body>
 
 </html>

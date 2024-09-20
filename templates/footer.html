@@ -1,0 +1,11 @@
+{{define "footer"}}
+<div class="footer">
+    <div class="build-id">
+        Build ID: <a href="https://github.com/cwpearson/ytdlp-site/compare/{{.build_id}}..master">{{.build_id}}</a>
+    </div>
+</div>
+{{end}}
+
+{{define "footer-css"}}
+<link rel="stylesheet" href="/static/style/footer.css">
+{{end}}

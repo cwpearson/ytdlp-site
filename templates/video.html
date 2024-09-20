@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.original.Title}}</title>
     <link rel="stylesheet" href="/static/style/video.css">
+    {{template "footer-css" .}}
 </head>
 
 <body>
@@ -38,14 +39,9 @@
     </div>
     {{end}}
 
-    <div class="footer">
-        <div class="build-id">
-            Build ID: <a href="https://github.com/cwpearson/ytdlp-site/compare/{{.build_id}}..master">{{.build_id}}</a>
-        </div>
-    </div>
-
     <script src="/static/script/save-media-progress.js"></script>
 
+    {{template "footer" .}}
 </body>
 
 </html>
