@@ -52,3 +52,7 @@ Build and push this container to ghcr
 - [ ] change from Audio -> Video
 - [x] Provide a better name for downloaded files
 - [x] Environment variable to control whether "Secure" flag set on cookie
+- [ ] Provide an about page
+  - `ffmpeg` version
+  - `yt-dlp` version
+  - disk space
