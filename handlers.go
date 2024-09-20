@@ -18,14 +18,16 @@ import (
 )
 
 type Footer struct {
-	BuildDate string
-	BuildId   string
+	BuildDate    string
+	BuildId      string
+	BuildIdShort string
 }
 
 func makeFooter() Footer {
 	return Footer{
-		BuildDate: getBuildDate(),
-		BuildId:   getGitSHA(),
+		BuildDate:    getBuildDate(),
+		BuildId:      getGitSHA(),
+		BuildIdShort: getGitSHA()[0:7],
 	}
 }
 
