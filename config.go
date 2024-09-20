@@ -7,6 +7,7 @@ import (
 )
 
 var GitSHA string
+var BuildDate string
 
 func getDataDir() string {
 	value, exists := os.LookupEnv("YTDLP_SITE_DATA_DIR")
@@ -54,11 +55,17 @@ func getSecure() bool {
 }
 
 func getGitSHA() string {
-
 	if GitSHA == "" {
 		return "<not provided>"
 	} else {
 		return GitSHA
 	}
+}
 
+func getBuildDate() string {
+	if BuildDate == "" {
+		return "<not provided>"
+	} else {
+		return BuildDate
+	}
 }

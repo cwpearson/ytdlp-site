@@ -7,7 +7,9 @@ go mod tidy
 ```bash
 export YTDLP_SITE_ADMIN_INITIAL_PASSWORD=abc123
 export YTDLP_SITE_SESSION_AUTH_KEY=v9qpt37hc4qpmhf
-go run *.go
+go run \
+ -ldflags "-X main.GitSHA=$(git rev-parse HEAD)" -ldflags "-X main.BuilDate=$(date)" \
+ *.go
 ```
 
 ## Environment Variables

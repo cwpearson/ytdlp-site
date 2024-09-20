@@ -17,6 +17,18 @@ import (
 	"gorm.io/gorm"
 )
 
+type Footer struct {
+	BuildDate string
+	BuildId   string
+}
+
+func makeFooter() Footer {
+	return Footer{
+		BuildDate: getBuildDate(),
+		BuildId:   getGitSHA(),
+	}
+}
+
 var ytdlpAudioOptions = []string{"-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]"}
 var ytdlpVideoOptions = []string{"-f", "bestaudio"}
 
@@ -624,8 +636,8 @@ func videosHandler(c echo.Context) error {
 	db.Where("user_id = ?", userID).Find(&origs)
 	return c.Render(http.StatusOK, "videos.html",
 		map[string]interface{}{
-			"videos":   origs,
-			"build_id": getGitSHA(),
+			"videos": origs,
+			"Footer": makeFooter(),
 		})
 }
 
@@ -752,7 +764,7 @@ func videoHandler(c echo.Context) error {
 			"videos":   videoURLs,
 			"audios":   audioURLs,
 			"dataDir":  dataDir,
-			"build_id": getGitSHA(),
+			"Footer":   makeFooter(),
 		})
 }
 

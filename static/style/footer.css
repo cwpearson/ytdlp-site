@@ -1,0 +1,9 @@
+.footer {
+    display: flex;
+    justify-content: space-evenly;
+    color: lightgray;
+}
+
+.footer a {
+    color: lightgray;
+}
