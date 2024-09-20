@@ -101,14 +101,13 @@ func main() {
 	e.POST("/download", downloadPostHandler, authMiddleware)
 	e.GET("/videos", videosHandler, authMiddleware)
 	e.GET("/video/:id", videoHandler, authMiddleware)
-	e.POST("/video/:id/cancel", videoCancelHandler, authMiddleware)
 	e.POST("/video/:id/restart", videoRestartHandler, authMiddleware)
 	e.POST("/video/:id/delete", videoDeleteHandler, authMiddleware)
+	e.GET("/temp/:token", tempHandler)
 
 	staticGroup := e.Group("/data")
 	staticGroup.Use(authMiddleware)
 	staticGroup.Static("/", getDataDir())
-	e.GET("/temp/:token", tempHandler)
 
 	secure := getSecure()
 

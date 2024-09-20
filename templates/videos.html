@@ -66,9 +66,6 @@
                     <button type="submit">Restart</button>
                 </form>
                 {{else if eq .Status "downloading"}}
-                <form action="/video/{{.ID}}/cancel" method="post" style="display:inline;">
-                    <button type="submit">Cancel</button>
-                </form>
                 {{end}}
                 <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
                     <button type="submit">Delete</button>

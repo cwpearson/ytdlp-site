@@ -756,18 +756,6 @@ func videoHandler(c echo.Context) error {
 		})
 }
 
-func videoCancelHandler(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
-	var video Video
-	if err := db.First(&video, id).Error; err != nil {
-		return c.Redirect(http.StatusSeeOther, "/videos")
-	}
-
-	// Cancel the download (this is a simplified version, you might need to implement a more robust cancellation mechanism)
-
-	return c.Redirect(http.StatusSeeOther, "/videos")
-}
-
 func videoRestartHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var orig Original
