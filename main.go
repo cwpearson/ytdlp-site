@@ -105,9 +105,13 @@ func main() {
 	e.POST("/video/:id/delete", videoDeleteHandler, authMiddleware)
 	e.GET("/temp/:token", tempHandler)
 
-	staticGroup := e.Group("/data")
+	dataGroup := e.Group("/data")
+	dataGroup.Use(authMiddleware)
+	dataGroup.Static("/", getDataDir())
+
+	staticGroup := e.Group("/static")
 	staticGroup.Use(authMiddleware)
-	staticGroup.Static("/", getDataDir())
+	staticGroup.Static("/", "static")
 
 	secure := getSecure()
 

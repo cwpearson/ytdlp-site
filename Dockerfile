@@ -22,6 +22,7 @@ RUN apt-get update \
 COPY --from=0 /usr/local/bin/yt-dlp /usr/local/bin/yt-dlp 
 COPY --from=0 /src/server /opt/server
 ADD templates /opt/templates
+ADD static /opt/static
 
 WORKDIR /opt
 CMD ["/opt/server"]
