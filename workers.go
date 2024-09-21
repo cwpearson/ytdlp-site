@@ -208,7 +208,7 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 }
 
 func transcodePending() {
-	fmt.Println("transcodePending...")
+	log.Debugln("transcodePending...")
 
 	// any running jobs here got stuck or dead in the midde, so reset them
 	db.Model(&Transcode{}).Where("status = ?", "running").Update("status", "pending")
@@ -223,7 +223,7 @@ func transcodePending() {
 				"ELSE 1 END").First(&trans).Error
 		// err := db.First(&trans, "status = ?", "pending").Error
 		if err == gorm.ErrRecordNotFound {
-			fmt.Println("no pending transcode jobs")
+			log.Debugln("no pending transcode jobs")
 			break // no more pending jobs
 		}
 

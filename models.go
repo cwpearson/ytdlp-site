@@ -159,7 +159,7 @@ func CreateTempURL(filePath string) (TempURL, error) {
 }
 
 func cleanupExpiredURLs() {
-	fmt.Println("cleanupExpiredURLs...")
+	log.Debugln("cleanupExpiredURLs...")
 	result := db.Unscoped().Where("expires_at < ?", time.Now()).Delete(&TempURL{})
 	if result.Error != nil {
 		fmt.Printf("Error cleaning up expired URLs: %v\n", result.Error)
@@ -170,7 +170,7 @@ func cleanupExpiredURLs() {
 
 func vacuumDatabase() {
 	if err := db.Exec("VACUUM").Error; err != nil {
-		fmt.Println(err)
+		log.Errorln(err)
 	}
 }
 

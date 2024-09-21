@@ -51,15 +51,26 @@ func registerPostHandler(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
-func loginHandler(c echo.Context) error {
-	return c.Render(http.StatusOK, "login.html", nil)
-}
-
 func homeHandler(c echo.Context) error {
+
+	// redirect to /videos if logged in
+	session, err := store.Get(c.Request(), "session")
+	if err == nil {
+		_, ok := session.Values["user_id"]
+		if ok {
+			fmt.Println("homeHandler: session contains user_id. Redirect to /video")
+			return c.Redirect(http.StatusSeeOther, "/videos")
+		}
+	}
+
 	return c.Render(http.StatusOK, "home.html",
 		map[string]interface{}{
 			"Footer": makeFooter(),
 		})
+}
+
+func loginHandler(c echo.Context) error {
+	return c.Render(http.StatusOK, "login.html", nil)
 }
 
 func loginPostHandler(c echo.Context) error {

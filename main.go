@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	golog "log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
@@ -37,25 +40,41 @@ func ensureAdminAccount(db *gorm.DB) error {
 
 func main() {
 
-	fmt.Printf("git SHA: %s\n", getGitSHA())
+	initLogger()
+
+	log.Infof("GitSHA: %s", getGitSHA())
+	log.Infof("BuildDate: %s", getBuildDate())
+
+	gormLogger := logger.New(
+		golog.New(os.Stdout, "\r\n", golog.LstdFlags), // io writer
+		logger.Config{
+			SlowThreshold:             time.Second, // Slow SQL threshold
+			LogLevel:                  logger.Warn, // Log level
+			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
+			ParameterizedQueries:      true,        // Don't include params in the SQL log
+			Colorful:                  false,       // Disable color
+		},
+	)
 
 	// Create config database
 	err := os.MkdirAll(getConfigDir(), 0700)
 	if err != nil {
-		panic("failed to create config dir")
+		log.Panicf("failed to create config dir %s", getConfigDir())
 	}
 
 	// Initialize database
 	dbPath := filepath.Join(getConfigDir(), "videos.db")
-	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: gormLogger,
+	})
 	if err != nil {
-		panic("failed to connect database")
+		log.Panicf("failed to connect to database %s", dbPath)
 	}
 
 	// set only a single connection so we don't actually have concurrent writes
 	sqlDB, err := db.DB()
 	if err != nil {
-		panic("failed to retrieve database")
+		log.Panicln("failed to retrieve database")
 	}
 	sqlDB.SetMaxOpenConns(1)
 
