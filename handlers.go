@@ -836,18 +836,17 @@ func deleteOriginalVideos(originalID int) {
 }
 
 func deleteAudios(originalID int) {
-	// delete audios
 	var audios []Audio
 	db.Where("original_id = ?", originalID).Find(&audios)
 	for _, audio := range audios {
 		path := filepath.Join(getDataDir(), audio.Filename)
-		fmt.Println("remove", path)
+		log.Debugln("remove", path)
 		err := os.Remove(path)
 		if err != nil {
-			fmt.Println("error removing", path, err)
+			log.Errorln("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ?", originalID)
+	db.Delete(&Audio{}, "original_id = ?", originalID)
 }
 
 func videoDeleteHandler(c echo.Context) error {
