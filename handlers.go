@@ -138,7 +138,7 @@ func downloadPostHandler(c echo.Context) error {
 	original := Original{
 		URL:    url,
 		UserID: userID,
-		Status: "pending",
+		Status: Pending,
 		Audio:  audioOnly,
 		Video:  !audioOnly,
 	}
@@ -562,10 +562,10 @@ func processOriginal(originalID uint) {
 }
 
 func startDownload(originalID uint, videoURL string, audioOnly bool) {
-	fmt.Println("startDownload audioOnly=", audioOnly)
+	log.Debugf("startDownload audioOnly=%t", audioOnly)
 
 	// metadata phase
-	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "metadata")
+	SetOriginalStatus(originalID, Metadata)
 	var origMeta Meta
 	var err error
 	if audioOnly {
@@ -574,21 +574,21 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		origMeta, err = getYtdlpVideoMeta(videoURL)
 	}
 	if err != nil {
-		db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+		SetOriginalStatus(originalID, Failed)
 		return
 	}
-	fmt.Printf("original metadata %v\n", origMeta)
+	log.Debugf("original metadata %v", origMeta)
 	err = db.Model(&Original{}).Where("id = ?", originalID).Updates(map[string]interface{}{
 		"title":  origMeta.title,
 		"artist": origMeta.artist,
 	}).Error
 	if err != nil {
-		db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+		SetOriginalStatus(originalID, Failed)
 		return
 	}
 
 	// download original
-	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "downloading")
+	SetOriginalStatus(originalID, Downloading)
 	dlFilename := fmt.Sprintf("%d-%s.%s", originalID, origMeta.title, origMeta.ext)
 	dlFilepath := filepath.Join(getDataDir(), dlFilename)
 
@@ -606,7 +606,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	cmd := exec.Command(ytdlp, ytdlpArgs...)
 	err = cmd.Run()
 	if err != nil {
-		db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+		SetOriginalStatus(originalID, Failed)
 		return
 	}
 
@@ -625,7 +625,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
 			fmt.Println("Couldn't create audio entry", err)
-			db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+			SetOriginalStatus(originalID, Failed)
 			return
 		}
 	} else {
@@ -640,12 +640,12 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		fmt.Println("create Video", video)
 		if db.Create(&video).Error != nil {
 			fmt.Println("Couldn't create video entry", err)
-			db.Model(&Original{}).Where("id = ?", originalID).Update("status", "failed")
+			SetOriginalStatus(originalID, Failed)
 			return
 		}
 	}
 
-	db.Model(&Original{}).Where("id = ?", originalID).Update("status", "completed")
+	SetOriginalStatus(originalID, DownloadCompleted)
 	processOriginal(originalID)
 }
 
@@ -789,12 +789,13 @@ func videoHandler(c echo.Context) error {
 
 func videoRestartHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
+
+	// FIXME: rewrite this as an update
 	var orig Original
 	if err := db.First(&orig, id).Error; err != nil {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
-
-	orig.Status = "pending"
+	orig.Status = Pending
 	db.Save(&orig)
 
 	go startDownload(uint(id), orig.URL, orig.Audio)

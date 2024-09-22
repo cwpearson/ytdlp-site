@@ -11,15 +11,26 @@ import (
 	"gorm.io/gorm"
 )
 
+type OriginalStatus string
+
+const (
+	Pending           OriginalStatus = "pending"
+	Metadata          OriginalStatus = "metadata"
+	Downloading       OriginalStatus = "downloading"
+	DownloadCompleted OriginalStatus = "download completed"
+	Transcoding       OriginalStatus = "transcoding"
+	Failed            OriginalStatus = "failed"
+)
+
 type Original struct {
 	gorm.Model
 	UserID uint
 	URL    string
 	Title  string
 	Artist string
-	Status string // "pending", "metadata", "downloading", "completed", "failed", "cancelled"
-	Audio  bool   // video download requested
-	Video  bool   // audio download requested
+	Status OriginalStatus
+	Audio  bool // video download requested
+	Video  bool // audio download requested
 }
 
 type Video struct {
@@ -100,6 +111,10 @@ func CreateUser(db *gorm.DB, username, password string) error {
 		return err
 	}
 	return nil
+}
+
+func SetOriginalStatus(id uint, status OriginalStatus) error {
+	return db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
 }
 
 func NewDownloadManager() *DownloadManager {
