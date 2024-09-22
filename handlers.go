@@ -810,13 +810,13 @@ func deleteTranscodes(originalID int) {
 
 func deleteTranscodedVideos(originalID int) {
 	var videos []Video
-	db.Where("original_id = ?", originalID).Where("source = ?", "transcoded").Find(&videos)
+	db.Where("original_id = ?", originalID).Where("source = ?", "transcode").Find(&videos)
 	for _, video := range videos {
 		path := filepath.Join(getDataDir(), video.Filename)
-		fmt.Println("remove", path)
+		log.Debugln("remove", path)
 		err := os.Remove(path)
 		if err != nil {
-			fmt.Println("error removing", path, err)
+			log.Errorln("error removing", path, err)
 		}
 	}
 	db.Delete(&Video{}, "original_id = ?", originalID)
