@@ -83,7 +83,6 @@ func main() {
 	go PeriodicCleanup()
 
 	// create a user
-	// FIXME: only if this user doesn't exist
 	err = ensureAdminAccount(db)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create admin user: %v", err))
