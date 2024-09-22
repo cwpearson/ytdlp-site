@@ -7,10 +7,7 @@ const pageKey = `mediaProgress_${window.location.pathname}`;
 
 // Function to save the current time of the most recently played media
 function saveMediaProgress(media) {
-    const currentProgress = parseFloat(localStorage.getItem(pageKey)) || 0;
-    if (media.currentTime > currentProgress) {
-        localStorage.setItem(pageKey, media.currentTime);
-    }
+    localStorage.setItem(pageKey, media.currentTime);
 }
 
 // Function to load and set the saved time for all media elements
