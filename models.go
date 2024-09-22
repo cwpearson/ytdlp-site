@@ -19,6 +19,7 @@ const (
 	Downloading       OriginalStatus = "downloading"
 	DownloadCompleted OriginalStatus = "download completed"
 	Transcoding       OriginalStatus = "transcoding"
+	Completed         OriginalStatus = "completed"
 	Failed            OriginalStatus = "failed"
 )
 

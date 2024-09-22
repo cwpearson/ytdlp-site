@@ -18,7 +18,7 @@
         {{range .videos}}
         <div class="video-card">
             <div class="video-title">
-                {{if eq .Status "completed"}}
+                {{if or (eq .Status "download completed") (eq .Status "transcoding") (eq .Status "completed")}}
                 <a href="/video/{{.ID}}">{{.Title}}</a>
                 {{else}}
                 {{.Title}}
