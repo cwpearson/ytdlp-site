@@ -219,19 +219,19 @@ func transcodePending() {
 		var originalsToUpdate []uint
 
 		// find any originals with a transcode job and mark them as transcoding
-		db.Debug().Model(&Original{}).
+		db.Model(&Original{}).
 			Select("id").
 			Where("id IN (?)",
 				db.Model(&Transcode{}).
 					Select("original_id"),
 			).
 			Find(&originalsToUpdate)
-		db.Debug().Model(&Original{}).
+		db.Model(&Original{}).
 			Where("id IN ?", originalsToUpdate).
 			Update("status", Transcoding)
 
 		// originals marked transcoding that don't have a transcode job -> complete
-		db.Debug().Model(&Original{}).
+		db.Model(&Original{}).
 			Select("id").
 			Where("status = ? AND id NOT IN (?)",
 				Transcoding,
@@ -239,7 +239,7 @@ func transcodePending() {
 					Select("original_id"),
 			).
 			Find(&originalsToUpdate)
-		db.Debug().Model(&Original{}).
+		db.Model(&Original{}).
 			Where("id IN ? AND status = ?", originalsToUpdate, Transcoding).
 			Update("status", Completed)
 
