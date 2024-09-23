@@ -38,7 +38,7 @@
             <div class="video-options">
                 {{if eq .Status "completed"}}
                 <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
-                    <button type="submit">Redo Processing</button>
+                    <button type="submit">Reprocess</button>
                 </form>
                 {{else if eq .Status "failed"}}
                 <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">

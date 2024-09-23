@@ -556,7 +556,7 @@ func processOriginal(originalID uint) {
 		}
 
 	} else {
-		fmt.Println("No original video or audio found in processOriginal")
+		log.Errorf("No original video or audio for %d found in processOriginal", originalID)
 	}
 
 }
@@ -804,7 +804,7 @@ func videoRestartHandler(c echo.Context) error {
 }
 
 func deleteTranscodes(originalID int) {
-	fmt.Println("Delete Transcode entries for Original", originalID)
+	log.Debugln("Delete Transcode entries for Original", originalID)
 	db.Delete(&Transcode{}, "original_id = ?", originalID)
 }
 
@@ -813,13 +813,13 @@ func deleteTranscodedVideos(originalID int) {
 	db.Where("original_id = ?", originalID).Where("source = ?", "transcode").Find(&videos)
 	for _, video := range videos {
 		path := filepath.Join(getDataDir(), video.Filename)
-		log.Debugln("remove", path)
+		log.Debugln("remove video", path)
 		err := os.Remove(path)
 		if err != nil {
 			log.Errorln("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ?", originalID)
+	db.Delete(&Video{}, "original_id = ? AND source = ?", originalID, "transcode")
 }
 
 func deleteOriginalVideos(originalID int) {
@@ -833,7 +833,7 @@ func deleteOriginalVideos(originalID int) {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ?", originalID)
+	db.Delete(&Video{}, "original_id = ? AND source = ?", originalID, "original")
 }
 
 func deleteAudios(originalID int) {
@@ -841,7 +841,7 @@ func deleteAudios(originalID int) {
 	db.Where("original_id = ?", originalID).Find(&audios)
 	for _, audio := range audios {
 		path := filepath.Join(getDataDir(), audio.Filename)
-		log.Debugln("remove", path)
+		log.Debugln("remove audio", path)
 		err := os.Remove(path)
 		if err != nil {
 			log.Errorln("error removing", path, err)
@@ -877,12 +877,19 @@ func tempHandler(c echo.Context) error {
 	return c.File(tempURL.FilePath)
 }
 
-// func processHandler(c echo.Context) error {
-// 	id, _ := strconv.Atoi(c.Param("id"))
+func processHandler(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id")) // FIXME: strconv.ParseUint?
 
-// 	deleteTranscodes(id)
-// 	deleteAudios(id)
-// 	deleteTranscodedVideos(id)
+	deleteTranscodes(id)
+	deleteAudios(id)
+	deleteTranscodedVideos(id)
 
-// 	processOriginal(id)
-// }
+	err := SetOriginalStatus(uint(id), DownloadCompleted)
+	if err != nil {
+		log.Errorf("error while setting original %d status: %v", id, err)
+	}
+
+	processOriginal(uint(id))
+
+	return c.Redirect(http.StatusSeeOther, "/videos")
+}
