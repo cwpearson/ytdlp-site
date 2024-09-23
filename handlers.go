@@ -836,9 +836,9 @@ func deleteOriginalVideos(originalID int) {
 	db.Delete(&Video{}, "original_id = ? AND source = ?", originalID, "original")
 }
 
-func deleteAudios(originalID int) {
+func deleteAudiosWithSource(originalID int, source string) {
 	var audios []Audio
-	db.Where("original_id = ?", originalID).Find(&audios)
+	db.Where("original_id = ?", originalID).Where("source = ?", source).Find(&audios)
 	for _, audio := range audios {
 		path := filepath.Join(getDataDir(), audio.Filename)
 		log.Debugln("remove audio", path)
@@ -847,7 +847,7 @@ func deleteAudios(originalID int) {
 			log.Errorln("error removing", path, err)
 		}
 	}
-	db.Delete(&Audio{}, "original_id = ?", originalID)
+	db.Delete(&Audio{}, "original_id = ? AND source = ?", originalID, source)
 }
 
 func videoDeleteHandler(c echo.Context) error {
@@ -860,7 +860,8 @@ func videoDeleteHandler(c echo.Context) error {
 	deleteTranscodes(id)
 	deleteTranscodedVideos(id)
 	deleteOriginalVideos(id)
-	deleteAudios(id)
+	deleteAudiosWithSource(id, "original")
+	deleteAudiosWithSource(id, "transcode")
 
 	db.Delete(&orig)
 	return c.Redirect(http.StatusSeeOther, "/videos")
@@ -881,7 +882,7 @@ func processHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id")) // FIXME: strconv.ParseUint?
 
 	deleteTranscodes(id)
-	deleteAudios(id)
+	deleteAudiosWithSource(id, "transcode")
 	deleteTranscodedVideos(id)
 
 	err := SetOriginalStatus(uint(id), DownloadCompleted)

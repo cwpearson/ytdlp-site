@@ -132,7 +132,11 @@ func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{OriginalID: orig.ID, Filename: audioFilename, Bps: kbps * 1000}
+	audio := Audio{OriginalID: orig.ID,
+		Filename: audioFilename,
+		Bps:      kbps * 1000,
+		Source:   "transcode",
+	}
 
 	fileSize, err := getSize(audioFilepath)
 	if err == nil {
@@ -190,6 +194,7 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 		OriginalID: orig.ID,
 		Filename:   dstFilename,
 		Bps:        kbps * 1000,
+		Source:     "transcode",
 	}
 
 	fileSize, err := getSize(dstFilepath)
