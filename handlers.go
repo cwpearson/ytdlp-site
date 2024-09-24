@@ -850,7 +850,7 @@ func deleteAudiosWithSource(originalID int, source string) {
 	db.Delete(&Audio{}, "original_id = ? AND source = ?", originalID, source)
 }
 
-func videoDeleteHandler(c echo.Context) error {
+func deleteOriginalHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var orig Original
 	if err := db.First(&orig, id).Error; err != nil {

@@ -120,7 +120,7 @@ func main() {
 	e.GET("/videos", videosHandler, authMiddleware)
 	e.GET("/video/:id", videoHandler, authMiddleware)
 	e.POST("/video/:id/restart", videoRestartHandler, authMiddleware)
-	e.POST("/video/:id/delete", videoDeleteHandler, authMiddleware)
+	e.POST("/video/:id/delete", deleteOriginalHandler, authMiddleware)
 	e.GET("/temp/:token", tempHandler)
 	e.POST("/video/:id/process", processHandler, authMiddleware)
 
