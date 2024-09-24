@@ -27,6 +27,13 @@
             <div class="media-download">
                 <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
             </div>
+            {{if ne .Source "original"}}
+            <div class="media-controls">
+                <form action="/delete_video/{{.ID}}" method="post">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+            {{end}}
         </div>
         {{end}}
     </div>
@@ -43,6 +50,13 @@
             <div class="media-download">
                 <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
             </div>
+            {{if ne .Source "original"}}
+            <div class="media-controls">
+                <form action="/delete_audio/{{.ID}}" method="post">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+            {{end}}
         </div>
         {{end}}
     </div>

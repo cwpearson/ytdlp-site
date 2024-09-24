@@ -123,6 +123,8 @@ func main() {
 	e.POST("/video/:id/delete", deleteOriginalHandler, authMiddleware)
 	e.GET("/temp/:token", tempHandler)
 	e.POST("/video/:id/process", processHandler, authMiddleware)
+	e.POST("/delete_video/:id", deleteVideoHandler, authMiddleware)
+	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
 
 	dataGroup := e.Group("/data")
 	dataGroup.Use(authMiddleware)

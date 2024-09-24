@@ -661,6 +661,7 @@ func videosHandler(c echo.Context) error {
 }
 
 type VideoTemplate struct {
+	ID               uint // Video.ID
 	Source           string
 	Width            uint
 	Height           uint
@@ -673,6 +674,8 @@ type VideoTemplate struct {
 }
 
 type AudioTemplate struct {
+	ID               uint // Audio.ID
+	Source           string
 	Kbps             string
 	Size             string
 	Filename         string
@@ -747,6 +750,7 @@ func videoHandler(c echo.Context) error {
 		rate := float64(video.Size) / video.Length
 
 		videoURLs = append(videoURLs, VideoTemplate{
+			ID:               video.ID,
 			Source:           video.Source,
 			Width:            video.Width,
 			Height:           video.Height,
@@ -768,6 +772,8 @@ func videoHandler(c echo.Context) error {
 		rate := float64(audio.Size) / audio.Length
 
 		audioURLs = append(audioURLs, AudioTemplate{
+			ID:               audio.ID,
+			Source:           audio.Source,
 			Kbps:             fmt.Sprintf("%.1f kbps", kbps),
 			Size:             humanSize(audio.Size),
 			Filename:         audio.Filename,
@@ -865,6 +871,60 @@ func deleteOriginalHandler(c echo.Context) error {
 
 	db.Delete(&orig)
 	return c.Redirect(http.StatusSeeOther, "/videos")
+}
+
+func deleteVideoHandler(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/"
+	}
+
+	var video Video
+	result := db.First(&video, id)
+	if result.Error != nil {
+		log.Errorln("error retrieving video", id, result.Error)
+		return c.Redirect(http.StatusSeeOther, referrer)
+	}
+
+	videoPath := filepath.Join(getDataDir(), video.Filename)
+	log.Debugln("remove", videoPath)
+	err := os.Remove(videoPath)
+	if err != nil {
+		log.Errorln("coudn't remove", videoPath, err)
+	}
+
+	if err := db.Delete(&Video{}, id).Error; err != nil {
+		log.Errorln("error deleting video record", id, err)
+	}
+	return c.Redirect(http.StatusSeeOther, referrer)
+}
+
+func deleteAudioHandler(c echo.Context) error {
+	id, _ := strconv.Atoi(c.Param("id"))
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/"
+	}
+
+	var audio Audio
+	result := db.First(&audio, id)
+	if result.Error != nil {
+		log.Errorln("error retrieving audio", id, result.Error)
+		return c.Redirect(http.StatusSeeOther, referrer)
+	}
+
+	filePath := filepath.Join(getDataDir(), audio.Filename)
+	log.Debugln("remove", filePath)
+	err := os.Remove(filePath)
+	if err != nil {
+		log.Errorln("coudn't remove", filePath, err)
+	}
+
+	if err := db.Delete(&Audio{}, id).Error; err != nil {
+		log.Errorln("error deleting audio record", id, err)
+	}
+	return c.Redirect(http.StatusSeeOther, referrer)
 }
 
 func tempHandler(c echo.Context) error {
