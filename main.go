@@ -125,6 +125,8 @@ func main() {
 	e.POST("/video/:id/process", processHandler, authMiddleware)
 	e.POST("/delete_video/:id", deleteVideoHandler, authMiddleware)
 	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
+	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, authMiddleware)
+	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, authMiddleware)
 
 	dataGroup := e.Group("/data")
 	dataGroup.Use(authMiddleware)

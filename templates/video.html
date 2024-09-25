@@ -36,6 +36,19 @@
             {{end}}
         </div>
         {{end}}
+        <div class="media-card">
+            <form action="/transcode_to_video/{{.original.ID}}" method="post">
+                <input type="hidden" name="original_id" value="{{.original.ID}}">
+                <label for="height-select">Height:</label>
+                <select name="height" id="height-select">
+                    <option value="144">144p</option>
+                    <option value="240">240p</option>
+                    <option value="360">360p</option>
+                </select>
+
+                <button type="submit">Transcode</button>
+            </form>
+        </div>
     </div>
     <div class="media-grid">
         {{range .audios}}
@@ -59,6 +72,18 @@
             {{end}}
         </div>
         {{end}}
+        <div class="media-card">
+            <form action="/transcode_to_audio/{{.original.ID}}" method="post">
+                <input type="hidden" name="original_id" value="{{.original.ID}}">
+                <label for="kbps-select">Kbps:</label>
+                <select name="kbps" id="kbps-select">
+                    <option value="64">64 kbps</option>
+                    <option value="96">96 kbps</option>
+                </select>
+
+                <button type="submit">Transcode</button>
+            </form>
+        </div>
     </div>
 
 

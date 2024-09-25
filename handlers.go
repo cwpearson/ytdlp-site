@@ -311,7 +311,6 @@ func getVideoFPS(path string) (float64, error) {
 		return -1, err
 	}
 
-	// TODO: this produces a string like "num/denom", do the division
 	parts := strings.Split(strings.TrimSpace(stdout.String()), "/")
 	if len(parts) != 2 {
 		fmt.Println("getVideoFPS split error:", err, stdout.String())
@@ -371,10 +370,13 @@ type VideoMeta struct {
 	height uint
 	fps    float64
 	length float64
+	size   int64 // file size
 }
 
 type AudioMeta struct {
-	rate uint
+	rate   uint
+	length float64
+	size   int64 // file size
 }
 
 func getVideoMeta(path string) (VideoMeta, error) {
@@ -394,11 +396,16 @@ func getVideoMeta(path string) (VideoMeta, error) {
 	if err != nil {
 		return VideoMeta{}, err
 	}
+	size, err := getSize(path)
+	if err != nil {
+		return VideoMeta{}, err
+	}
 	return VideoMeta{
 		width:  w,
 		height: h,
 		fps:    fps,
 		length: length,
+		size:   size,
 	}, nil
 }
 
@@ -440,9 +447,45 @@ func getAudioMeta(path string) (AudioMeta, error) {
 	if err != nil {
 		return AudioMeta{}, err
 	}
+	length, err := getLength(path)
+	if err != nil {
+		return AudioMeta{}, err
+	}
+	size, err := getSize(path)
+	if err != nil {
+		return AudioMeta{}, err
+	}
 	return AudioMeta{
-		rate: rate,
+		rate:   rate,
+		length: length,
+		size:   size,
 	}, nil
+}
+
+func addAudioTranscode(mediaId, originalId, bitrate uint, srcKind string) {
+	t := Transcode{
+		SrcID:      mediaId,
+		OriginalID: originalId,
+		SrcKind:    srcKind,
+		DstKind:    "audio",
+		Rate:       bitrate,
+		TimeSubmit: time.Now(),
+		Status:     "pending",
+	}
+	db.Create(&t)
+}
+
+func addVideoTranscode(videoId, originalId, targetHeight uint) {
+	t := Transcode{
+		SrcID:      videoId,
+		OriginalID: originalId,
+		SrcKind:    "video",
+		DstKind:    "video",
+		Height:     targetHeight,
+		TimeSubmit: time.Now(),
+		Status:     "pending",
+	}
+	db.Create(&t)
 }
 
 func processOriginal(originalID uint) {
@@ -469,54 +512,16 @@ func processOriginal(originalID uint) {
 			fmt.Println("Skipping non-existant file for processOriginal")
 			return
 		}
-		videoMeta, err := getVideoMeta(videoFilepath)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(videoMeta)
-			db.Model(&Video{}).Where("id = ?", video.ID).Update("fps", videoMeta.fps)
-			db.Model(&Video{}).Where("id = ?", video.ID).Update("width", videoMeta.width)
-			db.Model(&Video{}).Where("id = ?", video.ID).Update("height", videoMeta.height)
-			db.Model(&Video{}).Where("id = ?", video.ID).Updates(map[string]interface{}{
-				"fps":    videoMeta.fps,
-				"width":  videoMeta.width,
-				"height": videoMeta.height,
-				"length": videoMeta.length,
-			})
-		}
-
-		videoSize, err := getSize(videoFilepath)
-		if err == nil {
-			db.Model(&Video{}).Where("id = ?", video.ID).Update("size", videoSize)
-		}
 
 		// create audio transcodes
 		for _, bitrate := range []uint{64, 96, 128, 160, 192} {
-			t := Transcode{
-				SrcID:      video.ID,
-				OriginalID: originalID,
-				SrcKind:    "video",
-				DstKind:    "audio",
-				Rate:       bitrate,
-				TimeSubmit: time.Now(),
-				Status:     "pending",
-			}
-			db.Create(&t)
+			addAudioTranscode(video.ID, originalID, bitrate, "video")
 		}
 
 		// create video transcodes
 		for _, targetHeight := range []uint{144, 480, 720, 1080} {
-			if targetHeight <= videoMeta.height {
-				t := Transcode{
-					SrcID:      video.ID,
-					OriginalID: originalID,
-					SrcKind:    "video",
-					DstKind:    "video",
-					Height:     targetHeight,
-					TimeSubmit: time.Now(),
-					Status:     "pending",
-				}
-				db.Create(&t)
+			if targetHeight <= video.Height {
+				addVideoTranscode(video.ID, originalID, targetHeight)
 			}
 		}
 
@@ -528,35 +533,14 @@ func processOriginal(originalID uint) {
 			fmt.Println("Skipping non-existant audio file for processOriginal")
 			return
 		}
-		audioMeta, err := getAudioMeta(audioFilepath)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(audioMeta)
-			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("bps", audioMeta.rate)
-		}
-
-		size, err := getSize(audioFilepath)
-		if err == nil {
-			db.Model(&Audio{}).Where("id = ?", audio.ID).Update("size", size)
-		}
 
 		// create audio transcodes
 		for _, bitrate := range []uint{64, 96, 128, 160, 192} {
-			t := Transcode{
-				SrcID:      audio.ID,
-				OriginalID: originalID,
-				SrcKind:    "audio",
-				DstKind:    "audio",
-				Rate:       bitrate,
-				TimeSubmit: time.Now(),
-				Status:     "pending",
-			}
-			db.Create(&t)
+			addAudioTranscode(video.ID, originalID, bitrate, "audio")
 		}
 
 	} else {
-		log.Errorf("No original video or audio for %d found in processOriginal", originalID)
+		log.Errorf("No original video or audio for original %d found in processOriginal", originalID)
 	}
 
 }
@@ -610,17 +594,21 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		return
 	}
 
-	length, _ := getLength(dlFilepath)
-	size, _ := getSize(dlFilepath)
-
 	if audioOnly {
+		mediaMeta, err := getAudioMeta(dlFilepath)
+		if err != nil {
+			log.Errorln("couldn't get audio file metadata", err)
+			SetOriginalStatus(originalID, Failed)
+			return
+		}
+
 		audio := Audio{
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
 			Type:       origMeta.ext,
-			Length:     length,
-			Size:       size,
+			Length:     mediaMeta.length,
+			Size:       mediaMeta.size,
 		}
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
@@ -629,17 +617,27 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			return
 		}
 	} else {
+		mediaMeta, err := getVideoMeta(dlFilepath)
+		if err != nil {
+			log.Errorln("couldn't get video file metadata", err)
+			SetOriginalStatus(originalID, Failed)
+			return
+		}
+
 		video := Video{
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
 			Type:       origMeta.ext,
-			Length:     length,
-			Size:       size,
+			FPS:        mediaMeta.fps,
+			Width:      mediaMeta.width,
+			Height:     mediaMeta.height,
+			Length:     mediaMeta.length,
+			Size:       mediaMeta.size,
 		}
-		fmt.Println("create Video", video)
+		log.Debugln("create Video", video)
 		if db.Create(&video).Error != nil {
-			fmt.Println("Couldn't create video entry", err)
+			log.Errorln("Couldn't create video entry", err)
 			SetOriginalStatus(originalID, Failed)
 			return
 		}
@@ -924,6 +922,58 @@ func deleteAudioHandler(c echo.Context) error {
 	if err := db.Delete(&Audio{}, id).Error; err != nil {
 		log.Errorln("error deleting audio record", id, err)
 	}
+	return c.Redirect(http.StatusSeeOther, referrer)
+}
+
+func transcodeToVideoHandler(c echo.Context) error {
+	originalId, _ := strconv.ParseUint(c.FormValue("original_id"), 10, 32)
+	height, _ := strconv.ParseUint(c.FormValue("height"), 10, 32)
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/"
+	}
+
+	var video Video
+	err := db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&video).Error
+	if err == gorm.ErrRecordNotFound {
+		log.Errorf("no video record for original %d: %v", originalId, err)
+	} else {
+		addVideoTranscode(video.ID, uint(originalId), uint(height))
+	}
+
+	return c.Redirect(http.StatusSeeOther, referrer)
+}
+
+func transcodeToAudioHandler(c echo.Context) error {
+	originalId, _ := strconv.ParseUint(c.FormValue("original_id"), 10, 32)
+	kbps, _ := strconv.ParseUint(c.FormValue("kbps"), 10, 32)
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/"
+	}
+
+	// check if there is an original video
+	hasOriginalVideo := true
+	hasOriginalAudio := true
+	var video Video
+	var audio Audio
+	err := db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&video).Error
+	if err == gorm.ErrRecordNotFound {
+		hasOriginalVideo = false
+	}
+	err = db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&audio).Error
+	if err == gorm.ErrRecordNotFound {
+		hasOriginalAudio = false
+	}
+
+	if hasOriginalVideo {
+		addAudioTranscode(video.ID, uint(originalId), uint(kbps), "video")
+	} else if hasOriginalAudio {
+		addAudioTranscode(audio.ID, uint(originalId), uint(kbps), "audio")
+	} else {
+		log.Errorln("no audio or video record for original", originalId)
+	}
+
 	return c.Redirect(http.StatusSeeOther, referrer)
 }
 
