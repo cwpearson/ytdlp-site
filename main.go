@@ -80,7 +80,7 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 
 	// Migrate the schema
-	db.AutoMigrate(&Original{}, &media.Video{}, &Audio{}, &User{}, &TempURL{}, &Transcode{})
+	db.AutoMigrate(&Original{}, &media.Video{}, &media.Audio{}, &User{}, &TempURL{}, &Transcode{})
 	go PeriodicCleanup()
 
 	// create a user

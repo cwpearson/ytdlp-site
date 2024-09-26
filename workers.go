@@ -133,7 +133,7 @@ func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{OriginalID: orig.ID,
+	audio := media.Audio{OriginalID: orig.ID,
 		Filename: audioFilename,
 		Bps:      kbps * 1000,
 		Source:   "transcode",
@@ -191,7 +191,7 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := Audio{
+	audio := media.Audio{
 		OriginalID: orig.ID,
 		Filename:   dstFilename,
 		Bps:        kbps * 1000,
@@ -282,7 +282,7 @@ func transcodePending() {
 			}
 		} else if trans.SrcKind == "audio" {
 
-			var srcAudio Audio
+			var srcAudio media.Audio
 			err = db.First(&srcAudio, "id = ?", trans.SrcID).Error
 			if err != nil {
 				fmt.Println("no such source audio for audio Transcode", trans)

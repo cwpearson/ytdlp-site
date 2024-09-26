@@ -53,19 +53,6 @@ type Transcode struct {
 	Rate uint
 }
 
-type Audio struct {
-	gorm.Model
-	OriginalID uint   // Original.ID
-	Source     string // "original", "transcode"
-	Bps        uint
-	Length     float64
-	Size       int64
-	Type       string
-	Codec      string
-	Filename   string
-	Status     string // "pending", "completed", "failed"
-}
-
 type User struct {
 	gorm.Model
 	Username string `gorm:"unique"`

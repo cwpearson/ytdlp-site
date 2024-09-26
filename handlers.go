@@ -495,7 +495,7 @@ func processOriginal(originalID uint) {
 	hasOriginalVideo := true
 	hasOriginalAudio := true
 	var video media.Video
-	var audio Audio
+	var audio media.Audio
 	err := db.Where("source = ?", "original").Where("original_id = ?", originalID).First(&video).Error
 	if err == gorm.ErrRecordNotFound {
 		hasOriginalVideo = false
@@ -604,7 +604,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			return
 		}
 
-		audio := Audio{
+		audio := media.Audio{
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
@@ -731,7 +731,7 @@ func videoHandler(c echo.Context) error {
 		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, height ASC").
 		Find(&videos)
 
-	var audios []Audio
+	var audios []media.Audio
 	db.Where("original_id = ?", id).
 		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, bps ASC").
 		Find(&audios)
@@ -843,7 +843,7 @@ func deleteOriginalVideos(originalID int) {
 }
 
 func deleteAudiosWithSource(originalID int, source string) {
-	var audios []Audio
+	var audios []media.Audio
 	db.Where("original_id = ?", originalID).Where("source = ?", source).Find(&audios)
 	for _, audio := range audios {
 		path := filepath.Join(getDataDir(), audio.Filename)
@@ -853,7 +853,7 @@ func deleteAudiosWithSource(originalID int, source string) {
 			log.Errorln("error removing", path, err)
 		}
 	}
-	db.Delete(&Audio{}, "original_id = ? AND source = ?", originalID, source)
+	db.Delete(&media.Audio{}, "original_id = ? AND source = ?", originalID, source)
 }
 
 func deleteOriginalHandler(c echo.Context) error {
@@ -907,7 +907,7 @@ func deleteAudioHandler(c echo.Context) error {
 		referrer = "/"
 	}
 
-	var audio Audio
+	var audio media.Audio
 	result := db.First(&audio, id)
 	if result.Error != nil {
 		log.Errorln("error retrieving audio", id, result.Error)
@@ -921,7 +921,7 @@ func deleteAudioHandler(c echo.Context) error {
 		log.Errorln("coudn't remove", filePath, err)
 	}
 
-	if err := db.Delete(&Audio{}, id).Error; err != nil {
+	if err := db.Delete(&media.Audio{}, id).Error; err != nil {
 		log.Errorln("error deleting audio record", id, err)
 	}
 	return c.Redirect(http.StatusSeeOther, referrer)
@@ -958,7 +958,7 @@ func transcodeToAudioHandler(c echo.Context) error {
 	hasOriginalVideo := true
 	hasOriginalAudio := true
 	var video media.Video
-	var audio Audio
+	var audio media.Audio
 	err := db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&video).Error
 	if err == gorm.ErrRecordNotFound {
 		hasOriginalVideo = false
