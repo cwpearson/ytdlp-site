@@ -24,29 +24,40 @@
                     Your browser does not support the video tag.
                 </video>
             </div>
-            <div class="media-download">
-                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
-            </div>
-            {{if ne .Source "original"}}
-            <div class="media-controls">
+            <div class="media-buttons">
+                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}},
+                    {{.StreamRate}})</a>
+                {{if ne .Source "original"}}
                 <form action="/delete_video/{{.ID}}" method="post">
-                    <button type="submit">Delete</button>
+                    <button class="delete-button" type="submit">Delete</button>
                 </form>
+                {{end}}
             </div>
-            {{end}}
         </div>
         {{end}}
         <div class="media-card new-transcode">
+            <h3>New Transcode</h3>
             <form action="/transcode_to_video/{{.original.ID}}" method="post">
                 <input type="hidden" name="original_id" value="{{.original.ID}}">
-                <label for="height-select">Height:</label>
-                <select name="height" id="height-select">
-                    <option value="144">144p</option>
-                    <option value="240">240p</option>
-                    <option value="360">360p</option>
-                </select>
+                <div class="selects">
+                    <select name="height" id="height-select">
+                        <option value="144">144p</option>
+                        <option value="240">240p</option>
+                        <option value="360">360p</option>
+                        <option value="480">480p</option>
+                        <option value="720">720p</option>
+                        <option value="1080">1080p</option>
+                        <option value="2160">2160p</option>
+                    </select>
 
-                <button type="submit">Transcode</button>
+                    <select name="fps" id="fps-select">
+                        <option value="24">24 fps</option>
+                        <option value="25">25 fps</option>
+                        <option value="30">30 fps</option>
+                        <option value="60">60 fps</option>
+                    </select>
+                </div>
+                <button class="transcode-button" type="submit">Transcode</button>
             </form>
         </div>
     </div>
@@ -60,28 +71,30 @@
                     Your browser does not support the audio tag.
                 </audio>
             </div>
-            <div class="media-download">
-                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}}, {{.StreamRate}})</a>
-            </div>
-            {{if ne .Source "original"}}
-            <div class="media-controls">
+            <div class="media-buttons">
+                <a href="/data/{{.Filename}}" download="{{.DownloadFilename}}">Download ({{.Size}},
+                    {{.StreamRate}})</a>
+                {{if ne .Source "original"}}
                 <form action="/delete_audio/{{.ID}}" method="post">
-                    <button type="submit">Delete</button>
+                    <button class="delete-button" type="submit">Delete</button>
                 </form>
+                {{end}}
             </div>
-            {{end}}
         </div>
         {{end}}
         <div class="media-card new-transcode">
+            <h3>New Transcode</h3>
             <form action="/transcode_to_audio/{{.original.ID}}" method="post">
                 <input type="hidden" name="original_id" value="{{.original.ID}}">
-                <label for="kbps-select">Kbps:</label>
                 <select name="kbps" id="kbps-select">
                     <option value="64">64 kbps</option>
                     <option value="96">96 kbps</option>
+                    <option value="128">128 kbps</option>
+                    <option value="160">160 kbps</option>
+                    <option value="192">192 kbps</option>
                 </select>
 
-                <button type="submit">Transcode</button>
+                <button class="transcode-button" type="submit">Transcode</button>
             </form>
         </div>
     </div>
