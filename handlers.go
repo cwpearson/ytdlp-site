@@ -514,14 +514,15 @@ func processOriginal(originalID uint) {
 		}
 
 		// create audio transcodes
-		for _, bitrate := range []uint{64, 96, 128, 160, 192} {
+		for _, bitrate := range []uint{64 /*, 96, 128, 160, 192*/} {
 			addAudioTranscode(video.ID, originalID, bitrate, "video")
 		}
 
 		// create video transcodes
-		for _, targetHeight := range []uint{144, 480, 720, 1080} {
+		for _, targetHeight := range []uint{480, 240, 144} {
 			if targetHeight <= video.Height {
 				addVideoTranscode(video.ID, originalID, targetHeight)
+				break
 			}
 		}
 
@@ -535,7 +536,7 @@ func processOriginal(originalID uint) {
 		}
 
 		// create audio transcodes
-		for _, bitrate := range []uint{64, 96, 128, 160, 192} {
+		for _, bitrate := range []uint{64 /*, 96, 128, 160, 192*/} {
 			addAudioTranscode(video.ID, originalID, bitrate, "audio")
 		}
 

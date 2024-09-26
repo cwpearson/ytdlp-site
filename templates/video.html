@@ -36,7 +36,7 @@
         </div>
         {{end}}
         <div class="media-card new-transcode">
-            <h3>New Transcode</h3>
+            <h3>New Video Transcode</h3>
             <form action="/transcode_to_video/{{.original.ID}}" method="post">
                 <input type="hidden" name="original_id" value="{{.original.ID}}">
                 <div class="selects">
@@ -83,7 +83,7 @@
         </div>
         {{end}}
         <div class="media-card new-transcode">
-            <h3>New Transcode</h3>
+            <h3>New Audio Transcode</h3>
             <form action="/transcode_to_audio/{{.original.ID}}" method="post">
                 <input type="hidden" name="original_id" value="{{.original.ID}}">
                 <select name="kbps" id="kbps-select">
