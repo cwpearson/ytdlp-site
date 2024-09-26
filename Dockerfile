@@ -7,7 +7,8 @@ RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux 
  && chmod +x /usr/local/bin/yt-dlp
 
 ADD *.go /src/.
-ADD go.mod /src
+ADD media /src/media
+ADD go.mod /src/.
 
 RUN cd /src && go mod tidy
 RUN cd /src && go build -ldflags "-X main.GitSHA=${GIT_SHA} -X main.BuildDate=$(date +%Y-%m-%d)" -o server *.go
