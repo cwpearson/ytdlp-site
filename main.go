@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"ytdlp-site/media"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
@@ -79,7 +80,7 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 
 	// Migrate the schema
-	db.AutoMigrate(&Original{}, &Video{}, &Audio{}, &User{}, &TempURL{}, &Transcode{})
+	db.AutoMigrate(&Original{}, &media.Video{}, &Audio{}, &User{}, &TempURL{}, &Transcode{})
 	go PeriodicCleanup()
 
 	// create a user

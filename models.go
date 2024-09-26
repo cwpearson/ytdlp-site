@@ -34,20 +34,6 @@ type Original struct {
 	Video  bool // audio download requested
 }
 
-type Video struct {
-	gorm.Model
-	OriginalID uint   // Original.ID
-	Source     string // "original", "transcode"
-	Filename   string
-	Width      uint
-	Height     uint
-	FPS        float64
-	Length     float64
-	Size       int64
-	Type       string
-	Codec      string
-}
-
 type Transcode struct {
 	gorm.Model
 	Status     string // "pending", "running", "failed"

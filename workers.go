@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"ytdlp-site/media"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -70,7 +71,7 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create video record
-	video := Video{OriginalID: orig.ID, Source: "transcode", Filename: dstFilename}
+	video := media.Video{OriginalID: orig.ID, Source: "transcode", Filename: dstFilename}
 
 	fileSize, err := getSize(dstFilepath)
 	if err == nil {
@@ -262,7 +263,7 @@ func transcodePending() {
 
 		if trans.SrcKind == "video" {
 
-			var srcVideo Video
+			var srcVideo media.Video
 			err = db.First(&srcVideo, "id = ?", trans.SrcID).Error
 			if err != nil {
 				fmt.Println("no such source video for video Transcode", trans)

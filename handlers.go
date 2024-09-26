@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"ytdlp-site/media"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -493,7 +494,7 @@ func processOriginal(originalID uint) {
 	// check if there is an original video
 	hasOriginalVideo := true
 	hasOriginalAudio := true
-	var video Video
+	var video media.Video
 	var audio Audio
 	err := db.Where("source = ?", "original").Where("original_id = ?", originalID).First(&video).Error
 	if err == gorm.ErrRecordNotFound {
@@ -625,7 +626,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			return
 		}
 
-		video := Video{
+		video := media.Video{
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
@@ -725,7 +726,7 @@ func videoHandler(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
 
-	var videos []Video
+	var videos []media.Video
 	db.Where("original_id = ?", id).
 		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, height ASC").
 		Find(&videos)
@@ -814,7 +815,7 @@ func deleteTranscodes(originalID int) {
 }
 
 func deleteTranscodedVideos(originalID int) {
-	var videos []Video
+	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "transcode").Find(&videos)
 	for _, video := range videos {
 		path := filepath.Join(getDataDir(), video.Filename)
@@ -824,11 +825,11 @@ func deleteTranscodedVideos(originalID int) {
 			log.Errorln("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ? AND source = ?", originalID, "transcode")
+	db.Delete(&media.Video{}, "original_id = ? AND source = ?", originalID, "transcode")
 }
 
 func deleteOriginalVideos(originalID int) {
-	var videos []Video
+	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "original").Find(&videos)
 	for _, video := range videos {
 		path := filepath.Join(getDataDir(), video.Filename)
@@ -838,7 +839,7 @@ func deleteOriginalVideos(originalID int) {
 			fmt.Println("error removing", path, err)
 		}
 	}
-	db.Delete(&Video{}, "original_id = ? AND source = ?", originalID, "original")
+	db.Delete(&media.Video{}, "original_id = ? AND source = ?", originalID, "original")
 }
 
 func deleteAudiosWithSource(originalID int, source string) {
@@ -879,7 +880,7 @@ func deleteVideoHandler(c echo.Context) error {
 		referrer = "/"
 	}
 
-	var video Video
+	var video media.Video
 	result := db.First(&video, id)
 	if result.Error != nil {
 		log.Errorln("error retrieving video", id, result.Error)
@@ -893,7 +894,7 @@ func deleteVideoHandler(c echo.Context) error {
 		log.Errorln("coudn't remove", videoPath, err)
 	}
 
-	if err := db.Delete(&Video{}, id).Error; err != nil {
+	if err := db.Delete(&media.Video{}, id).Error; err != nil {
 		log.Errorln("error deleting video record", id, err)
 	}
 	return c.Redirect(http.StatusSeeOther, referrer)
@@ -934,7 +935,7 @@ func transcodeToVideoHandler(c echo.Context) error {
 		referrer = "/"
 	}
 
-	var video Video
+	var video media.Video
 	err := db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&video).Error
 	if err == gorm.ErrRecordNotFound {
 		log.Errorf("no video record for original %d: %v", originalId, err)
@@ -956,7 +957,7 @@ func transcodeToAudioHandler(c echo.Context) error {
 	// check if there is an original video
 	hasOriginalVideo := true
 	hasOriginalAudio := true
-	var video Video
+	var video media.Video
 	var audio Audio
 	err := db.Where("source = ?", "original").Where("original_id = ?", originalId).First(&video).Error
 	if err == gorm.ErrRecordNotFound {
