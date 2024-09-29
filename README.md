@@ -59,3 +59,4 @@ Build and push this container to ghcr
   - `ffmpeg` version
   - `yt-dlp` version
   - disk space
+- [ ] skip buttons for audio player
