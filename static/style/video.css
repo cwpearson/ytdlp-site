@@ -22,16 +22,22 @@ button {
 .media-card button {
     display: inline-block;
     padding: 10px 15px;
-    margin: 1rem;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
     text-decoration: none;
     border-radius: 4px;
+}
+
+.media-card form {
+    padding-top: 0;
+    margin-top: 0;
 }
 
 .media-card a {
     display: inline-block;
     padding: 10px 15px;
     margin: 1rem;
-    margin-bottom: 0;
     background-color: #007bff;
     color: white;
     text-decoration: none;
@@ -81,6 +87,8 @@ button {
 .delete-button {
     background-color: red;
     color: white;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 .transcode-button {
