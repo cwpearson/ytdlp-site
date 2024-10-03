@@ -254,15 +254,26 @@ func getLength(path string) (float64, error) {
 }
 
 func getVideoWidth(path string) (uint, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams",
+
+	ffprobe := "ffprobe"
+	ffprobeArgs := []string{"-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
-		"stream=width", "-of", "csv=p=0", path)
+		"stream=width", "-of", "csv=p=0", path}
+
+	fmt.Println(ffprobe, strings.Join(ffprobeArgs, " "))
+	cmd := exec.Command(ffprobe, ffprobeArgs...)
 
 	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("getVideoWidth cmd error:", err)
+		fmt.Println("stdout was")
+		fmt.Println(stdout)
+		fmt.Println("stderr was")
+		fmt.Println(stderr)
 		return 0, err
 	}
 
