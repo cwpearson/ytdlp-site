@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -155,53 +154,33 @@ type Meta struct {
 }
 
 func getYtdlpTitle(url string, args []string) (string, error) {
-	ytdlp := "yt-dlp"
 	args = append(args, "--simulate", "--print", "%(title)s", url)
-	fmt.Println(ytdlp, strings.Join(args, " "))
-	cmd := exec.Command(ytdlp, args...)
-
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+	stdout, _, err := runYtdlp(args...)
 	if err != nil {
-		fmt.Println("getYtdlpTitle error:", err, stdout.String())
+		log.Errorln(err)
 		return "", err
 	}
-	return strings.TrimSpace(stdout.String()), nil
+	return strings.TrimSpace(string(stdout)), nil
 }
 
 func getYtdlpArtist(url string, args []string) (string, error) {
-	ytdlp := "yt-dlp"
 	args = append(args, "--simulate", "--print", "%(uploader)s", url)
-	fmt.Println(ytdlp, strings.Join(args, " "))
-	cmd := exec.Command(ytdlp, args...)
-
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+	stdout, _, err := runYtdlp(args...)
 	if err != nil {
-		fmt.Println("getYtdlpArtist error:", err, stdout.String())
+		log.Errorln(err)
 		return "", err
 	}
-	return strings.TrimSpace(stdout.String()), nil
+	return strings.TrimSpace(string(stdout)), nil
 }
 
 func getYtdlpExt(url string, args []string) (string, error) {
-	ytdlp := "yt-dlp"
 	args = append(args, "--simulate", "--print", "%(ext)s", url)
-	fmt.Println(ytdlp, strings.Join(args, " "))
-	cmd := exec.Command(ytdlp, args...)
-
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+	stdout, _, err := runYtdlp(args...)
 	if err != nil {
-		fmt.Println("getYtdlpExt error:", err, stdout.String())
+		log.Errorln(err)
 		return "", err
 	}
-	result := strings.TrimSpace(stdout.String())
-	fmt.Println(result)
-	return result, nil
+	return strings.TrimSpace(string(stdout)), nil
 }
 
 func getYtdlpMeta(url string, args []string) (Meta, error) {
@@ -235,26 +214,21 @@ func getYtdlpVideoMeta(url string) (Meta, error) {
 
 // return the length in seconds of a video file at `path`
 func getLength(path string) (float64, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration",
+	stdout, _, err := runFfprobe("-v", "error", "-show_entries", "format=duration",
 		"-of", "default=noprint_wrappers=1:nokey=1", path)
-
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
 	if err != nil {
-		fmt.Println("getLength cmd error:", err)
+		log.Errorln("ffprobe error:", err)
 		return -1, err
 	}
 
-	result, err := strconv.ParseFloat(strings.TrimSpace(stdout.String()), 64)
+	result, err := strconv.ParseFloat(strings.TrimSpace(string(stdout)), 64)
 	if err != nil {
-		fmt.Println("getLength parse error:", err, stdout.String())
+		log.Errorln("parse error:", err, string(stdout))
 	}
 	return result, nil
 }
 
 func getVideoWidth(path string) (uint, error) {
-
 	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
 		"stream=width", "-of", "csv=p=0", path)
@@ -266,27 +240,24 @@ func getVideoWidth(path string) (uint, error) {
 
 	result, err := strconv.ParseUint(strings.TrimSpace(string(stdout)), 10, 32)
 	if err != nil {
-		fmt.Println("parse width error:", err, string(stdout))
+		log.Errorln("parse width error:", err, string(stdout))
 	}
 	return uint(result), nil
 }
 
 func getVideoHeight(path string) (uint, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams",
+	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
 		"stream=height", "-of", "csv=p=0", path)
 
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
 	if err != nil {
-		fmt.Println("getVideoHeight cmd error:", err)
+		log.Errorln("ffprobe error:", err)
 		return 0, err
 	}
 
-	result, err := strconv.ParseUint(strings.TrimSpace(stdout.String()), 10, 32)
+	result, err := strconv.ParseUint(strings.TrimSpace(string(stdout)), 10, 32)
 	if err != nil {
-		fmt.Println("getVideoHeight parse error:", err, stdout.String())
+		log.Errorln("getVideoHeight parse error:", err, string(stdout))
 	}
 	return uint(result), nil
 }
