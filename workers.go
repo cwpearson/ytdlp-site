@@ -16,7 +16,7 @@ import (
 
 func ensureDirFor(path string) error {
 	dir := filepath.Dir(path)
-	fmt.Println("Create", dir)
+	log.Debugln("Create", dir)
 	return os.MkdirAll(dir, 0700)
 }
 

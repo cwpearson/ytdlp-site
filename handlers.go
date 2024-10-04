@@ -255,31 +255,18 @@ func getLength(path string) (float64, error) {
 
 func getVideoWidth(path string) (uint, error) {
 
-	ffprobe := "ffprobe"
-	ffprobeArgs := []string{"-v", "error", "-select_streams",
+	stdout, _, err := runFfprobe([]string{"-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
-		"stream=width", "-of", "csv=p=0", path}
+		"stream=width", "-of", "csv=p=0", path})
 
-	fmt.Println(ffprobe, strings.Join(ffprobeArgs, " "))
-	cmd := exec.Command(ffprobe, ffprobeArgs...)
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
 	if err != nil {
-		fmt.Println("getVideoWidth cmd error:", err)
-		fmt.Println("stdout was")
-		fmt.Println(stdout)
-		fmt.Println("stderr was")
-		fmt.Println(stderr)
+		log.Errorln("ffprobe error", err)
 		return 0, err
 	}
 
-	result, err := strconv.ParseUint(strings.TrimSpace(stdout.String()), 10, 32)
+	result, err := strconv.ParseUint(strings.TrimSpace(string(stdout)), 10, 32)
 	if err != nil {
-		fmt.Println("getVideoWidth parse error:", err, stdout.String())
+		fmt.Println("parse width error:", err, string(stdout))
 	}
 	return uint(result), nil
 }
@@ -306,39 +293,35 @@ func getVideoHeight(path string) (uint, error) {
 
 func getVideoFPS(path string) (float64, error) {
 
-	ffprobe := "ffprobe"
-	args := []string{"-v", "error", "-select_streams",
+	stdout, _, err := runFfprobe([]string{"-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
-		"stream=r_frame_rate", "-of", "csv=p=0", path}
-
-	fmt.Println(ffprobe, strings.Join(args, " "))
-
-	cmd := exec.Command(ffprobe, args...)
-
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+		"stream=r_frame_rate", "-of", "csv=p=0", path})
 	if err != nil {
-		fmt.Println("getVideoFPS cmd error:", err)
+		log.Errorln("ffprobe error:", err)
 		return -1, err
 	}
 
-	parts := strings.Split(strings.TrimSpace(stdout.String()), "/")
+	stdoutStr := string(stdout)
+	parts := strings.Split(strings.TrimSpace(stdoutStr), "/")
 	if len(parts) != 2 {
-		fmt.Println("getVideoFPS split error:", err, stdout.String())
+		log.Errorln("output format error", err, stdoutStr)
+		return 0, err
 	}
 
 	num, err := strconv.ParseFloat(parts[0], 64)
 	if err != nil {
-		fmt.Println("getVideoFPS numerator parse error:", err, stdout.String())
+		log.Errorln("numerator parse error:", err, stdoutStr)
+		return 0, err
 	}
 
 	denom, err := strconv.ParseFloat(parts[1], 64)
 	if err != nil {
-		fmt.Println("getVideoFPS denominator parse error:", err, stdout.String())
+		log.Errorln("denominator parse error:", err, stdoutStr)
+		return 0, err
 	}
 	if denom == 0 {
-		fmt.Println("getVideoFPS denominator is zero error:", stdout.String())
+		log.Errorln("denominator is zero error:", stdoutStr)
+		return 0, err
 	}
 
 	return num / denom, nil
@@ -423,22 +406,16 @@ func getVideoMeta(path string) (VideoMeta, error) {
 
 func getAudioDuration(path string) (float64, error) {
 
-	ffprobe := "ffprobe"
-	ffprobeArgs := []string{
+	stdout, _, err := runFfprobe([]string{
 		"-v", "error",
 		"-show_entries", "format=duration",
 		"-of", "default=noprint_wrappers=1:nokey=1",
-		path}
-	fmt.Println(ffprobe, strings.Join(ffprobeArgs, " "))
-	cmd := exec.Command(ffprobe, ffprobeArgs...)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
+		path})
 	if err != nil {
-		fmt.Println("getAudioDuration error:", err, stdout.String())
+		log.Errorln("ffprobe error:", err)
 		return 0, err
 	}
-	durationStr := strings.TrimSpace(stdout.String())
+	durationStr := strings.TrimSpace(string(stdout))
 	return strconv.ParseFloat(durationStr, 64)
 }
 
