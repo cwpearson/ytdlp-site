@@ -255,9 +255,9 @@ func getLength(path string) (float64, error) {
 
 func getVideoWidth(path string) (uint, error) {
 
-	stdout, _, err := runFfprobe([]string{"-v", "error", "-select_streams",
+	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
-		"stream=width", "-of", "csv=p=0", path})
+		"stream=width", "-of", "csv=p=0", path)
 
 	if err != nil {
 		log.Errorln("ffprobe error", err)
@@ -293,9 +293,9 @@ func getVideoHeight(path string) (uint, error) {
 
 func getVideoFPS(path string) (float64, error) {
 
-	stdout, _, err := runFfprobe([]string{"-v", "error", "-select_streams",
+	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
-		"stream=r_frame_rate", "-of", "csv=p=0", path})
+		"stream=r_frame_rate", "-of", "csv=p=0", path)
 	if err != nil {
 		log.Errorln("ffprobe error:", err)
 		return -1, err
@@ -406,11 +406,10 @@ func getVideoMeta(path string) (VideoMeta, error) {
 
 func getAudioDuration(path string) (float64, error) {
 
-	stdout, _, err := runFfprobe([]string{
-		"-v", "error",
+	stdout, _, err := runFfprobe("-v", "error",
 		"-show_entries", "format=duration",
 		"-of", "default=noprint_wrappers=1:nokey=1",
-		path})
+		path)
 	if err != nil {
 		log.Errorln("ffprobe error:", err)
 		return 0, err

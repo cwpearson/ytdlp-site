@@ -16,7 +16,7 @@ type FFProbeOutput struct {
 }
 
 // runs ffprobe with the provided args and returns (stdout, stderr, error)
-func runFfprobe(args []string) ([]byte, []byte, error) {
+func runFfprobe(args ...string) ([]byte, []byte, error) {
 	ffprobe := "ffprobe"
 	log.Infoln(ffprobe, strings.Join(args, " "))
 	cmd := exec.Command(ffprobe, args...)
@@ -35,7 +35,7 @@ func runFfprobe(args []string) ([]byte, []byte, error) {
 }
 
 func getAudioFormat(filename string) (string, error) {
-	output, _, err := runFfprobe([]string{"-v", "quiet", "-print_format", "json", "-show_streams", filename})
+	output, _, err := runFfprobe("-v", "quiet", "-print_format", "json", "-show_streams", filename)
 	if err != nil {
 		log.Errorln("ffprobe error:", err)
 		return "", err
@@ -65,7 +65,7 @@ func getStreamBitrate(path string, stream int) (uint, error) {
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		path}
 
-	stdout, _, err := runFfprobe(ffprobeArgs)
+	stdout, _, err := runFfprobe(ffprobeArgs...)
 	if err != nil {
 		fmt.Println("ffprobe error:", err, string(stdout))
 		return 0, err
@@ -87,7 +87,7 @@ func getFormatBitrate(path string) (uint, error) {
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		path}
 
-	stdout, _, err := runFfprobe(ffprobeArgs)
+	stdout, _, err := runFfprobe(ffprobeArgs...)
 	if err != nil {
 		fmt.Println("ffprobe error:", err, string(stdout))
 		return 0, err
