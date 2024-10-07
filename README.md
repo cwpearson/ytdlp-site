@@ -60,3 +60,7 @@ Build and push this container to ghcr
   - `yt-dlp` version
   - disk space
 - [ ] skip buttons for audio player
+- [ ] Track progress via video URL rather than ID
+- [ ] Show author on video page
+  - [ ] Link to author on video page
+- [ ] Link to author on videos page
