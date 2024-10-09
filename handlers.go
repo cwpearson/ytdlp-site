@@ -532,7 +532,8 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	SetOriginalStatus(originalID, Downloading)
 
 	// create temporary directory
-	tempDir, err := os.MkdirTemp("", "dl")
+	// do this in the data directory since /tmp is sometimes a different filesystem
+	tempDir, err := os.MkdirTemp(getDataDir(), "dl")
 	if err != nil {
 		log.Errorln("Error creating temporary directory:", err)
 		SetOriginalStatus(originalID, Failed)
