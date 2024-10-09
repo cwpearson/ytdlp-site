@@ -150,7 +150,6 @@ func downloadPostHandler(c echo.Context) error {
 type Meta struct {
 	title  string
 	artist string
-	ext    string
 }
 
 func getYtdlpTitle(url string, args []string) (string, error) {
@@ -190,15 +189,11 @@ func getYtdlpMeta(url string, args []string) (Meta, error) {
 
 	meta.title, err = getYtdlpTitle(url, args)
 	if err != nil {
-
+		return meta, err
 	}
 	meta.artist, err = getYtdlpArtist(url, args)
 	if err != nil {
-
-	}
-	meta.ext, err = getYtdlpExt(url, args)
-	if err != nil {
-
+		return meta, err
 	}
 
 	return meta, nil
@@ -518,6 +513,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		origMeta, err = getYtdlpVideoMeta(videoURL)
 	}
 	if err != nil {
+		log.Errorln("couldn't retrieve metadata:", err)
 		SetOriginalStatus(originalID, Failed)
 		return
 	}
@@ -527,31 +523,68 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		"artist": origMeta.artist,
 	}).Error
 	if err != nil {
+		log.Errorln("couldn't store metadata:", err)
 		SetOriginalStatus(originalID, Failed)
 		return
 	}
 
 	// download original
 	SetOriginalStatus(originalID, Downloading)
-	dlFilename := fmt.Sprintf("%d-%s.%s", originalID, origMeta.title, origMeta.ext)
-	dlFilepath := filepath.Join(getDataDir(), dlFilename)
 
+	// create temporary directory
+	tempDir, err := os.MkdirTemp("", "dl")
+	if err != nil {
+		log.Errorln("Error creating temporary directory:", err)
+		SetOriginalStatus(originalID, Failed)
+		return
+	}
+	defer os.RemoveAll(tempDir)
+	log.Debugln("created", tempDir)
+
+	// download into temporary directory
 	var args []string
 	if audioOnly {
 		args = ytdlpVideoOptions
 	} else {
 		args = ytdlpAudioOptions
 	}
-
 	ytdlp := "yt-dlp"
-	ytdlpArgs := append(args, "-o", dlFilepath, videoURL)
-
+	ytdlpArgs := append(args, videoURL)
 	fmt.Println(ytdlp, strings.Join(ytdlpArgs, " "))
 	cmd := exec.Command(ytdlp, ytdlpArgs...)
+	cmd.Dir = tempDir
 	err = cmd.Run()
 	if err != nil {
+		log.Errorln("yt-dlp failed")
 		SetOriginalStatus(originalID, Failed)
 		return
+	}
+
+	// discover name of downloaded file
+	dirEnts, err := os.ReadDir(tempDir)
+	if err != nil {
+		log.Errorln("Error reading directory:", err)
+		SetOriginalStatus(originalID, Failed)
+		return
+	}
+	dlFilename := ""
+	for _, dirEnt := range dirEnts {
+		if !dirEnt.IsDir() {
+			dlFilename = dirEnt.Name()
+			break
+		}
+	}
+	if dlFilename == "" {
+		log.Errorln("couldn't find a downloaded file")
+		SetOriginalStatus(originalID, Failed)
+	}
+
+	// move to data directory
+	dlFilepath := filepath.Join(getDataDir(), dlFilename)
+	err = os.Rename(filepath.Join(tempDir, dlFilename), dlFilepath)
+	if err != nil {
+		log.Errorln("couldn't move downloaded file")
+		SetOriginalStatus(originalID, Failed)
 	}
 
 	if audioOnly {
@@ -566,7 +599,6 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
-			Type:       origMeta.ext,
 			Length:     mediaMeta.length,
 			Size:       mediaMeta.size,
 		}
@@ -588,7 +620,6 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
-			Type:       origMeta.ext,
 			FPS:        mediaMeta.fps,
 			Width:      mediaMeta.width,
 			Height:     mediaMeta.height,
