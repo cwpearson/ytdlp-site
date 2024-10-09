@@ -571,6 +571,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	for _, dirEnt := range dirEnts {
 		if !dirEnt.IsDir() {
 			dlFilename = dirEnt.Name()
+			log.Debugln("found downloaded file", dlFilename)
 			break
 		}
 	}
@@ -580,11 +581,14 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}
 
 	// move to data directory
+	srcPath := filepath.Join(tempDir, dlFilename)
 	dlFilepath := filepath.Join(getDataDir(), dlFilename)
-	err = os.Rename(filepath.Join(tempDir, dlFilename), dlFilepath)
+	log.Debugln("rename", srcPath, "->", dlFilepath)
+	err = os.Rename(srcPath, dlFilepath)
 	if err != nil {
-		log.Errorln("couldn't move downloaded file")
+		log.Errorln("rename downloaded media error", srcPath, "->", dlFilepath, ":", err)
 		SetOriginalStatus(originalID, Failed)
+		return
 	}
 
 	if audioOnly {
