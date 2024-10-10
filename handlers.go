@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -121,6 +123,10 @@ func downloadHandler(c echo.Context) error {
 		})
 }
 
+func isPlaylistUrl(url string) bool {
+	return strings.Contains(strings.ToLower(url), "playlist")
+}
+
 func downloadPostHandler(c echo.Context) error {
 	url := c.FormValue("url")
 	userID := c.Get("user_id").(uint)
@@ -135,15 +141,28 @@ func downloadPostHandler(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/download")
 	}
 
-	original := Original{
-		URL:    url,
-		UserID: userID,
-		Status: Pending,
-		Audio:  audioOnly,
-		Video:  !audioOnly,
+	if isPlaylistUrl(url) {
+		playlist := Playlist{
+			URL:    url,
+			UserID: userID,
+			Audio:  audioOnly,
+			Video:  !audioOnly,
+		}
+		db.Create(&playlist)
+		go startPlaylist(playlist.ID, url, audioOnly)
+
+	} else {
+		original := Original{
+			URL:    url,
+			UserID: userID,
+			Status: Pending,
+			Audio:  audioOnly,
+			Video:  !audioOnly,
+		}
+		db.Create(&original)
+		go startDownload(original.ID, url, audioOnly)
 	}
-	db.Create(&original)
-	go startDownload(original.ID, url, audioOnly)
+
 	return c.Redirect(http.StatusSeeOther, "/videos")
 }
 
@@ -160,6 +179,26 @@ func getYtdlpTitle(url string, args []string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(stdout)), nil
+}
+
+func getYtdlpPlaylistTitle(url string) (string, error) {
+	stdout, _, err := runYtdlp("--flat-playlist", "--dump-single-json", url)
+	if err != nil {
+		log.Errorln(err)
+		return "", err
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal(stdout, &data)
+	if err != nil {
+		return "", err
+	}
+	title, ok := data["title"].(string)
+	if !ok {
+		return "", errors.New("title field not found or not a string")
+	}
+
+	return title, nil
 }
 
 func getYtdlpArtist(url string, args []string) (string, error) {
@@ -643,14 +682,61 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	processOriginal(originalID)
 }
 
+func startPlaylist(id uint, url string, audioOnly bool) {
+	// retrieve playlist metadata
+	title, err := getYtdlpPlaylistTitle(url)
+	if err != nil {
+		SetPlaylistStatus(id, Failed)
+		return
+	}
+	err = db.Model(&Playlist{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"title": title,
+	}).Error
+	if err != nil {
+		SetPlaylistStatus(id, Failed)
+		return
+	}
+
+	// populate playlist entries
+	stdout, _, err := runYtdlp("--get-id", "--flat-playlist", url)
+	if err != nil {
+		SetPlaylistStatus(id, Failed)
+		return
+	}
+	for _, line := range strings.Split(string(stdout), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			original := Original{
+				URL:        fmt.Sprintf("https://www.youtube.com/watch?v=%s", line),
+				Status:     Pending,
+				Video:      !audioOnly,
+				Audio:      audioOnly,
+				Playlist:   true,
+				PlaylistID: id,
+			}
+			err = db.Create(&original).Error
+			if err != nil {
+				SetPlaylistStatus(id, Failed)
+				return
+			}
+		}
+	}
+	SetPlaylistStatus(id, Completed)
+}
+
 func videosHandler(c echo.Context) error {
 	userID := c.Get("user_id").(uint)
 	var origs []Original
 	db.Where("user_id = ?", userID).Find(&origs)
+
+	var playlists []Playlist
+	db.Where("user_id = ?", userID).Find(&playlists)
+
 	return c.Render(http.StatusOK, "videos.html",
 		map[string]interface{}{
-			"videos": origs,
-			"Footer": makeFooter(),
+			"videos":    origs,
+			"playlists": playlists,
+			"Footer":    makeFooter(),
 		})
 }
 
@@ -999,4 +1085,20 @@ func processHandler(c echo.Context) error {
 	processOriginal(uint(id))
 
 	return c.Redirect(http.StatusSeeOther, "/videos")
+}
+
+func playlistHandler(c echo.Context) error {
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/videos"
+	}
+	return c.Redirect(http.StatusSeeOther, referrer)
+}
+
+func deletePlaylistHandler(c echo.Context) error {
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/videos"
+	}
+	return c.Redirect(http.StatusSeeOther, referrer)
 }

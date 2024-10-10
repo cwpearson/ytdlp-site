@@ -25,13 +25,17 @@ const (
 
 type Original struct {
 	gorm.Model
-	UserID uint
-	URL    string
-	Title  string
-	Artist string
-	Status OriginalStatus
-	Audio  bool // video download requested
-	Video  bool // audio download requested
+	UserID  uint
+	URL     string
+	Title   string
+	Artist  string
+	Status  OriginalStatus
+	Audio   bool // video download requested
+	Video   bool // audio download requested
+	Watched bool
+
+	Playlist   bool // part of a playlist
+	PlaylistID uint // Playlist.ID (if part of a playlist)
 }
 
 type Transcode struct {
@@ -51,6 +55,16 @@ type Transcode struct {
 
 	// audio & video fields
 	Rate uint
+}
+
+type Playlist struct {
+	gorm.Model
+	UserID uint
+	URL    string
+	Title  string
+	Status OriginalStatus
+	Audio  bool
+	Video  bool
 }
 
 type User struct {
@@ -89,6 +103,10 @@ func CreateUser(db *gorm.DB, username, password string) error {
 
 func SetOriginalStatus(id uint, status OriginalStatus) error {
 	return db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func SetPlaylistStatus(id uint, status OriginalStatus) error {
+	return db.Model(&Playlist{}).Where("id = ?", id).Update("status", status).Error
 }
 
 func NewDownloadManager() *DownloadManager {

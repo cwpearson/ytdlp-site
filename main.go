@@ -80,7 +80,7 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 
 	// Migrate the schema
-	db.AutoMigrate(&Original{}, &media.Video{}, &media.Audio{}, &User{}, &TempURL{}, &Transcode{})
+	db.AutoMigrate(&Original{}, &Playlist{}, &media.Video{}, &media.Audio{}, &User{}, &TempURL{}, &Transcode{})
 	go PeriodicCleanup()
 
 	// create a user
@@ -128,6 +128,9 @@ func main() {
 	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
 	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, authMiddleware)
 	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, authMiddleware)
+
+	e.GET("/p/:id", playlistHandler, authMiddleware)
+	e.POST("/p/:id/delete", deletePlaylistHandler, authMiddleware)
 
 	dataGroup := e.Group("/data")
 	dataGroup.Use(authMiddleware)

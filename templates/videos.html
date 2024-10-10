@@ -53,6 +53,37 @@
         </div>
         {{end}}
     </div>
+
+    <h1>Playlists</h1>
+    <div class="video-list">
+        {{range .playlists}}
+        <div class="video-card">
+            <div class="video-title">
+                {{if eq .Status "completed"}}
+                <a href="/p/{{.ID}}">{{.Title}}</a>
+                {{else}}
+                {{.Title}}
+                {{end}}
+            </div>
+            <div class="video-options">
+                {{if eq .Status "completed"}}
+                <form action="/p/{{.ID}}/process" method="post" style="display:inline;">
+                    <button type="submit">Reprocess</button>
+                </form>
+                {{else if eq .Status "failed"}}
+                <form action="/p/{{.ID}}/restart" method="post" style="display:inline;">
+                    <button type="submit">Restart</button>
+                </form>
+                {{else if eq .Status "downloading"}}
+                {{end}}
+                <form action="/p/{{.ID}}/delete" method="post" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+        </div>
+        {{end}}
+    </div>
+
     <p><a href="/download">Download New Video</a></p>
     <p><a href="/logout">Logout</a></p>
 
