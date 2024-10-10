@@ -14,6 +14,7 @@ import (
 type OriginalStatus string
 
 const (
+	StatusNotStarted  OriginalStatus = "not started"
 	Pending           OriginalStatus = "pending"
 	Metadata          OriginalStatus = "metadata"
 	Downloading       OriginalStatus = "downloading"

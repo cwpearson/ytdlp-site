@@ -706,7 +706,7 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 		original := Original{
 			Title:      entry.Title,
 			URL:        entry.URL,
-			Status:     Pending,
+			Status:     StatusNotStarted,
 			Video:      !audioOnly,
 			Audio:      audioOnly,
 			Playlist:   true,
@@ -886,12 +886,12 @@ func videoRestartHandler(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/videos")
 }
 
-func deleteTranscodes(originalID int) {
+func deleteTranscodes(originalID uint) {
 	log.Debugln("Delete Transcode entries for Original", originalID)
 	db.Delete(&Transcode{}, "original_id = ?", originalID)
 }
 
-func deleteTranscodedVideos(originalID int) {
+func deleteTranscodedVideos(originalID uint) {
 	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "transcode").Find(&videos)
 	for _, video := range videos {
@@ -905,7 +905,7 @@ func deleteTranscodedVideos(originalID int) {
 	db.Delete(&media.Video{}, "original_id = ? AND source = ?", originalID, "transcode")
 }
 
-func deleteOriginalVideos(originalID int) {
+func deleteOriginalVideos(originalID uint) {
 	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "original").Find(&videos)
 	for _, video := range videos {
@@ -919,7 +919,7 @@ func deleteOriginalVideos(originalID int) {
 	db.Delete(&media.Video{}, "original_id = ? AND source = ?", originalID, "original")
 }
 
-func deleteAudiosWithSource(originalID int, source string) {
+func deleteAudiosWithSource(originalID uint, source string) {
 	var audios []media.Audio
 	db.Where("original_id = ?", originalID).Where("source = ?", source).Find(&audios)
 	for _, audio := range audios {
@@ -933,11 +933,10 @@ func deleteAudiosWithSource(originalID int, source string) {
 	db.Delete(&media.Audio{}, "original_id = ? AND source = ?", originalID, source)
 }
 
-func deleteOriginalHandler(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+func deleteOriginal(id uint) error {
 	var orig Original
 	if err := db.First(&orig, id).Error; err != nil {
-		return c.Redirect(http.StatusSeeOther, "/videos")
+		return err
 	}
 
 	deleteTranscodes(id)
@@ -947,7 +946,39 @@ func deleteOriginalHandler(c echo.Context) error {
 	deleteAudiosWithSource(id, "transcode")
 
 	db.Delete(&orig)
+
+	return nil
+}
+
+func deleteOriginalHandler(c echo.Context) error {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	deleteOriginal(uint(id))
 	return c.Redirect(http.StatusSeeOther, "/videos")
+}
+
+// delete Video entry and associated file
+func deleteVideo(id int) error {
+	var video media.Video
+	result := db.First(&video, id)
+	if result.Error != nil {
+		log.Errorln("error retrieving video", id, result.Error)
+		return result.Error
+	}
+
+	videoPath := filepath.Join(getDataDir(), video.Filename)
+	log.Debugln("remove", videoPath)
+	err := os.Remove(videoPath)
+	if err != nil {
+		log.Errorln("coudn't remove", videoPath, err)
+		return err
+	}
+
+	if err := db.Delete(&media.Video{}, id).Error; err != nil {
+		log.Errorln("error deleting video record", id, err)
+		return err
+	}
+
+	return nil
 }
 
 func deleteVideoHandler(c echo.Context) error {
@@ -956,23 +987,9 @@ func deleteVideoHandler(c echo.Context) error {
 	if referrer == "" {
 		referrer = "/"
 	}
-
-	var video media.Video
-	result := db.First(&video, id)
-	if result.Error != nil {
-		log.Errorln("error retrieving video", id, result.Error)
-		return c.Redirect(http.StatusSeeOther, referrer)
-	}
-
-	videoPath := filepath.Join(getDataDir(), video.Filename)
-	log.Debugln("remove", videoPath)
-	err := os.Remove(videoPath)
+	err := deleteVideo(id)
 	if err != nil {
-		log.Errorln("coudn't remove", videoPath, err)
-	}
-
-	if err := db.Delete(&media.Video{}, id).Error; err != nil {
-		log.Errorln("error deleting video record", id, err)
+		log.Errorln("delete video error", id, err)
 	}
 	return c.Redirect(http.StatusSeeOther, referrer)
 }
@@ -1068,11 +1085,11 @@ func tempHandler(c echo.Context) error {
 }
 
 func processHandler(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id")) // FIXME: strconv.ParseUint?
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64) // FIXME: strconv.ParseUint?
 
-	deleteTranscodes(id)
-	deleteAudiosWithSource(id, "transcode")
-	deleteTranscodedVideos(id)
+	deleteTranscodes(uint(id))
+	deleteAudiosWithSource(uint(id), "transcode")
+	deleteTranscodedVideos(uint(id))
 
 	err := SetOriginalStatus(uint(id), DownloadCompleted)
 	if err != nil {
@@ -1105,6 +1122,31 @@ func playlistHandler(c echo.Context) error {
 }
 
 func deletePlaylistHandler(c echo.Context) error {
+	id := c.Param("id")
+
+	// delete all originals
+	var originals []Original
+	err := db.Model(&Original{}).
+		Where("playlist = ?", true).
+		Where("playlist_id = ?", id).
+		Find(&originals).Error
+	if err != nil {
+		log.Errorln(err)
+	}
+
+	for _, original := range originals {
+		err := deleteOriginal(original.ID)
+		if err != nil {
+			log.Errorln(err)
+		}
+	}
+
+	// delete playlist entry
+	err = db.Delete(&Playlist{}, id).Error
+	if err != nil {
+		log.Errorln(err)
+	}
+
 	referrer := c.Request().Referer()
 	if referrer == "" {
 		referrer = "/videos"
