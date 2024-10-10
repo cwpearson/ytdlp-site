@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="10">
+    <title>Playlist</title>
+    <link rel="stylesheet" href="/static/style/common.css">
+    <link rel="stylesheet" href="/static/style/videos.css">
+    {{template "footer-css" .}}
+</head>
+
+<body>
+    <h1>Playlist</h1>
+
+    <div class="video-list">
+        {{range .originals}}
+        <div class="video-card">
+            <div class="video-title">
+                {{if or (eq .Status "download completed") (eq .Status "transcoding") (eq .Status "completed")}}
+                <a href="/video/{{.ID}}">{{.Title}}</a>
+                {{else}}
+                {{.Title}}
+                {{end}}
+            </div>
+            <div class="video-info">{{.Artist}}</div>
+            <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
+            <div class="video-info">{{.Status}}</div>
+            <div class="video-info">
+                {{if .Audio}}
+                Audio
+                {{end}}
+                {{if .Video}}
+                Video
+                {{end}}
+            </div>
+            <div class="video-options">
+                {{if eq .Status "completed"}}
+                <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
+                    <button type="submit">Reprocess</button>
+                </form>
+                {{else if eq .Status "failed"}}
+                <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
+                    <button type="submit">Restart</button>
+                </form>
+                {{else if eq .Status "downloading"}}
+                {{end}}
+                <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+        </div>
+        {{end}}
+    </div>
+
+    <p><a href="/logout">Logout</a></p>
+
+    {{template "footer" .}}
+</body>
+
+</html>

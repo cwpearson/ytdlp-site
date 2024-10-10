@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -181,24 +180,30 @@ func getYtdlpTitle(url string, args []string) (string, error) {
 	return strings.TrimSpace(string(stdout)), nil
 }
 
-func getYtdlpPlaylistTitle(url string) (string, error) {
+type PlaylistEntry struct {
+	URL   string `json:"url"`
+	Title string `json:"title"`
+}
+
+type PlaylistData struct {
+	Title   string          `json:"title"`
+	Entries []PlaylistEntry `json:"entries"`
+}
+
+func getYtdlpPlaylist(url string) (PlaylistData, error) {
+	var data PlaylistData
 	stdout, _, err := runYtdlp("--flat-playlist", "--dump-single-json", url)
 	if err != nil {
 		log.Errorln(err)
-		return "", err
+		return data, err
 	}
 
-	var data map[string]interface{}
 	err = json.Unmarshal(stdout, &data)
 	if err != nil {
-		return "", err
-	}
-	title, ok := data["title"].(string)
-	if !ok {
-		return "", errors.New("title field not found or not a string")
+		return data, err
 	}
 
-	return title, nil
+	return data, nil
 }
 
 func getYtdlpArtist(url string, args []string) (string, error) {
@@ -684,41 +689,33 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 func startPlaylist(id uint, url string, audioOnly bool) {
 	// retrieve playlist metadata
-	title, err := getYtdlpPlaylistTitle(url)
+	pl, err := getYtdlpPlaylist(url)
 	if err != nil {
 		SetPlaylistStatus(id, Failed)
 		return
 	}
 	err = db.Model(&Playlist{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"title": title,
+		"title": pl.Title,
 	}).Error
 	if err != nil {
 		SetPlaylistStatus(id, Failed)
 		return
 	}
 
-	// populate playlist entries
-	stdout, _, err := runYtdlp("--get-id", "--flat-playlist", url)
-	if err != nil {
-		SetPlaylistStatus(id, Failed)
-		return
-	}
-	for _, line := range strings.Split(string(stdout), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			original := Original{
-				URL:        fmt.Sprintf("https://www.youtube.com/watch?v=%s", line),
-				Status:     Pending,
-				Video:      !audioOnly,
-				Audio:      audioOnly,
-				Playlist:   true,
-				PlaylistID: id,
-			}
-			err = db.Create(&original).Error
-			if err != nil {
-				SetPlaylistStatus(id, Failed)
-				return
-			}
+	for _, entry := range pl.Entries {
+		original := Original{
+			Title:      entry.Title,
+			URL:        entry.URL,
+			Status:     Pending,
+			Video:      !audioOnly,
+			Audio:      audioOnly,
+			Playlist:   true,
+			PlaylistID: id,
+		}
+		err = db.Create(&original).Error
+		if err != nil {
+			SetPlaylistStatus(id, Failed)
+			return
 		}
 	}
 	SetPlaylistStatus(id, Completed)
@@ -1088,11 +1085,23 @@ func processHandler(c echo.Context) error {
 }
 
 func playlistHandler(c echo.Context) error {
-	referrer := c.Request().Referer()
-	if referrer == "" {
-		referrer = "/videos"
+
+	id := c.Param("id")
+
+	var originals []Original
+
+	err := db.Where("playlist = ?", true).
+		Where("playlist_id = ?", id).
+		Find(&originals).Error
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
-	return c.Redirect(http.StatusSeeOther, referrer)
+
+	return c.Render(http.StatusOK, "playlist.html",
+		map[string]interface{}{
+			"originals": originals,
+			"Footer":    makeFooter(),
+		})
 }
 
 func deletePlaylistHandler(c echo.Context) error {
