@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 	"ytdlp-site/media"
+	"ytdlp-site/originals"
+	"ytdlp-site/playlists"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -141,20 +143,21 @@ func downloadPostHandler(c echo.Context) error {
 	}
 
 	if isPlaylistUrl(url) {
-		playlist := Playlist{
+		playlist := playlists.Playlist{
 			URL:    url,
 			UserID: userID,
 			Audio:  audioOnly,
 			Video:  !audioOnly,
+			Status: playlists.StatusNotStarted,
 		}
 		db.Create(&playlist)
 		go startPlaylist(playlist.ID, url, audioOnly)
 
 	} else {
-		original := Original{
+		original := originals.Original{
 			URL:    url,
 			UserID: userID,
-			Status: Pending,
+			Status: originals.StatusNotStarted,
 			Audio:  audioOnly,
 			Video:  !audioOnly,
 		}
@@ -548,7 +551,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	log.Debugf("startDownload audioOnly=%t", audioOnly)
 
 	// metadata phase
-	SetOriginalStatus(originalID, Metadata)
+	originals.SetStatus(db, originalID, originals.StatusMetadata)
 	var origMeta Meta
 	var err error
 	if audioOnly {
@@ -558,29 +561,29 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}
 	if err != nil {
 		log.Errorln("couldn't retrieve metadata:", err)
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 	log.Debugf("original metadata %v", origMeta)
-	err = db.Model(&Original{}).Where("id = ?", originalID).Updates(map[string]interface{}{
+	err = db.Model(&originals.Original{}).Where("id = ?", originalID).Updates(map[string]interface{}{
 		"title":  origMeta.title,
 		"artist": origMeta.artist,
 	}).Error
 	if err != nil {
 		log.Errorln("couldn't store metadata:", err)
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 
 	// download original
-	SetOriginalStatus(originalID, Downloading)
+	originals.SetStatus(db, originalID, originals.StatusDownloading)
 
 	// create temporary directory
 	// do this in the data directory since /tmp is sometimes a different filesystem
 	tempDir, err := os.MkdirTemp(getDataDir(), "dl")
 	if err != nil {
 		log.Errorln("Error creating temporary directory:", err)
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 	defer os.RemoveAll(tempDir)
@@ -601,7 +604,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	err = cmd.Run()
 	if err != nil {
 		log.Errorln("yt-dlp failed")
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 
@@ -609,7 +612,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	dirEnts, err := os.ReadDir(tempDir)
 	if err != nil {
 		log.Errorln("Error reading directory:", err)
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 	dlFilename := ""
@@ -622,7 +625,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}
 	if dlFilename == "" {
 		log.Errorln("couldn't find a downloaded file")
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 	}
 
 	// move to data directory
@@ -632,7 +635,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	err = os.Rename(srcPath, dlFilepath)
 	if err != nil {
 		log.Errorln("rename downloaded media error", srcPath, "->", dlFilepath, ":", err)
-		SetOriginalStatus(originalID, Failed)
+		originals.SetStatus(db, originalID, originals.StatusFailed)
 		return
 	}
 
@@ -640,7 +643,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		mediaMeta, err := getAudioMeta(dlFilepath)
 		if err != nil {
 			log.Errorln("couldn't get audio file metadata", err)
-			SetOriginalStatus(originalID, Failed)
+			originals.SetStatus(db, originalID, originals.StatusFailed)
 			return
 		}
 
@@ -654,14 +657,14 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
 			fmt.Println("Couldn't create audio entry", err)
-			SetOriginalStatus(originalID, Failed)
+			originals.SetStatus(db, originalID, originals.StatusFailed)
 			return
 		}
 	} else {
 		mediaMeta, err := getVideoMeta(dlFilepath)
 		if err != nil {
 			log.Errorln("couldn't get video file metadata", err)
-			SetOriginalStatus(originalID, Failed)
+			originals.SetStatus(db, originalID, originals.StatusFailed)
 			return
 		}
 
@@ -678,12 +681,12 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		log.Debugln("create Video", video)
 		if db.Create(&video).Error != nil {
 			log.Errorln("Couldn't create video entry", err)
-			SetOriginalStatus(originalID, Failed)
+			originals.SetStatus(db, originalID, originals.StatusFailed)
 			return
 		}
 	}
 
-	SetOriginalStatus(originalID, DownloadCompleted)
+	originals.SetStatus(db, originalID, originals.StatusDownloadCompleted)
 	processOriginal(originalID)
 }
 
@@ -691,22 +694,22 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 	// retrieve playlist metadata
 	pl, err := getYtdlpPlaylist(url)
 	if err != nil {
-		SetPlaylistStatus(id, Failed)
+		playlists.SetStatus(db, id, playlists.StatusFailed)
 		return
 	}
-	err = db.Model(&Playlist{}).Where("id = ?", id).Updates(map[string]interface{}{
+	err = db.Model(&playlists.Playlist{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"title": pl.Title,
 	}).Error
 	if err != nil {
-		SetPlaylistStatus(id, Failed)
+		playlists.SetStatus(db, id, playlists.StatusFailed)
 		return
 	}
 
 	for _, entry := range pl.Entries {
-		original := Original{
+		original := originals.Original{
 			Title:      entry.Title,
 			URL:        entry.URL,
-			Status:     StatusNotStarted,
+			Status:     originals.StatusNotStarted,
 			Video:      !audioOnly,
 			Audio:      audioOnly,
 			Playlist:   true,
@@ -714,19 +717,19 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 		}
 		err = db.Create(&original).Error
 		if err != nil {
-			SetPlaylistStatus(id, Failed)
+			playlists.SetStatus(db, id, playlists.StatusFailed)
 			return
 		}
 	}
-	SetPlaylistStatus(id, Completed)
+	playlists.SetStatus(db, id, playlists.StatusCompleted)
 }
 
 func videosHandler(c echo.Context) error {
 	userID := c.Get("user_id").(uint)
-	var origs []Original
+	var origs []originals.Original
 	db.Where("user_id = ?", userID).Find(&origs)
 
-	var playlists []Playlist
+	var playlists []playlists.Playlist
 	db.Where("user_id = ?", userID).Find(&playlists)
 
 	return c.Render(http.StatusOK, "videos.html",
@@ -798,7 +801,7 @@ func makeNiceFilename(input string) string {
 
 func videoHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	var orig Original
+	var orig originals.Original
 	if err := db.First(&orig, id).Error; err != nil {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
@@ -874,16 +877,20 @@ func videoRestartHandler(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 
 	// FIXME: rewrite this as an update
-	var orig Original
+	var orig originals.Original
 	if err := db.First(&orig, id).Error; err != nil {
 		return c.Redirect(http.StatusSeeOther, "/videos")
 	}
-	orig.Status = Pending
+	orig.Status = originals.StatusNotStarted
 	db.Save(&orig)
 
 	go startDownload(uint(id), orig.URL, orig.Audio)
 
-	return c.Redirect(http.StatusSeeOther, "/videos")
+	referrer := c.Request().Referer()
+	if referrer == "" {
+		referrer = "/videos"
+	}
+	return c.Redirect(http.StatusSeeOther, referrer)
 }
 
 func deleteTranscodes(originalID uint) {
@@ -934,7 +941,7 @@ func deleteAudiosWithSource(originalID uint, source string) {
 }
 
 func deleteOriginal(id uint) error {
-	var orig Original
+	var orig originals.Original
 	if err := db.First(&orig, id).Error; err != nil {
 		return err
 	}
@@ -1091,7 +1098,7 @@ func processHandler(c echo.Context) error {
 	deleteAudiosWithSource(uint(id), "transcode")
 	deleteTranscodedVideos(uint(id))
 
-	err := SetOriginalStatus(uint(id), DownloadCompleted)
+	err := originals.SetStatus(db, uint(id), originals.StatusDownloadCompleted)
 	if err != nil {
 		log.Errorf("error while setting original %d status: %v", id, err)
 	}
@@ -1102,21 +1109,38 @@ func processHandler(c echo.Context) error {
 }
 
 func playlistHandler(c echo.Context) error {
-
 	id := c.Param("id")
 
-	var originals []Original
+	var playlist playlists.Playlist
+	err := db.Where(id).First(&playlist).Error
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+	}
 
-	err := db.Where("playlist = ?", true).
+	var origs []originals.Original
+	var watchedOrigs []originals.Original
+
+	err = db.Where("playlist = ?", true).
 		Where("playlist_id = ?", id).
-		Find(&originals).Error
+		Where("watched = ?", false).
+		Find(&origs).Error
+	if err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+	}
+
+	err = db.Where("playlist = ?", true).
+		Where("playlist_id = ?", id).
+		Where("watched = ?", true).
+		Find(&watchedOrigs).Error
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 
 	return c.Render(http.StatusOK, "playlist.html",
 		map[string]interface{}{
-			"originals": originals,
+			"playlist":  playlist,
+			"unwatched": origs,
+			"watched":   watchedOrigs,
 			"Footer":    makeFooter(),
 		})
 }
@@ -1125,16 +1149,16 @@ func deletePlaylistHandler(c echo.Context) error {
 	id := c.Param("id")
 
 	// delete all originals
-	var originals []Original
-	err := db.Model(&Original{}).
+	var origs []originals.Original
+	err := db.Model(&originals.Original{}).
 		Where("playlist = ?", true).
 		Where("playlist_id = ?", id).
-		Find(&originals).Error
+		Find(&origs).Error
 	if err != nil {
 		log.Errorln(err)
 	}
 
-	for _, original := range originals {
+	for _, original := range origs {
 		err := deleteOriginal(original.ID)
 		if err != nil {
 			log.Errorln(err)
@@ -1142,7 +1166,7 @@ func deletePlaylistHandler(c echo.Context) error {
 	}
 
 	// delete playlist entry
-	err = db.Delete(&Playlist{}, id).Error
+	err = db.Delete(&playlists.Playlist{}, id).Error
 	if err != nil {
 		log.Errorln(err)
 	}

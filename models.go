@@ -5,39 +5,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"ytdlp-site/originals"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
-type OriginalStatus string
-
-const (
-	StatusNotStarted  OriginalStatus = "not started"
-	Pending           OriginalStatus = "pending"
-	Metadata          OriginalStatus = "metadata"
-	Downloading       OriginalStatus = "downloading"
-	DownloadCompleted OriginalStatus = "download completed"
-	Transcoding       OriginalStatus = "transcoding"
-	Completed         OriginalStatus = "completed"
-	Failed            OriginalStatus = "failed"
-)
-
-type Original struct {
-	gorm.Model
-	UserID  uint
-	URL     string
-	Title   string
-	Artist  string
-	Status  OriginalStatus
-	Audio   bool // video download requested
-	Video   bool // audio download requested
-	Watched bool
-
-	Playlist   bool // part of a playlist
-	PlaylistID uint // Playlist.ID (if part of a playlist)
-}
 
 type Transcode struct {
 	gorm.Model
@@ -56,16 +29,6 @@ type Transcode struct {
 
 	// audio & video fields
 	Rate uint
-}
-
-type Playlist struct {
-	gorm.Model
-	UserID uint
-	URL    string
-	Title  string
-	Status OriginalStatus
-	Audio  bool
-	Video  bool
 }
 
 type User struct {
@@ -102,18 +65,8 @@ func CreateUser(db *gorm.DB, username, password string) error {
 	return nil
 }
 
-func SetOriginalStatus(id uint, status OriginalStatus) error {
-	return db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
-}
-
-func SetPlaylistStatus(id uint, status OriginalStatus) error {
-	return db.Model(&Playlist{}).Where("id = ?", id).Update("status", status).Error
-}
-
-func NewDownloadManager() *DownloadManager {
-	return &DownloadManager{
-		downloads: make(map[uint]*DownloadStatus),
-	}
+func SetOriginalStatus(id uint, status originals.Status) error {
+	return db.Model(&originals.Original{}).Where("id = ?", id).Update("status", status).Error
 }
 
 func (dm *DownloadManager) UpdateStatus(id uint, progress float64, status string, err string) {
@@ -125,22 +78,6 @@ func (dm *DownloadManager) UpdateStatus(id uint, progress float64, status string
 	dm.downloads[id].Progress = progress
 	dm.downloads[id].Status = status
 	dm.downloads[id].Error = err
-}
-
-func (dm *DownloadManager) GetStatus(id uint) (DownloadStatus, bool) {
-	dm.mutex.RLock()
-	defer dm.mutex.RUnlock()
-	status, exists := dm.downloads[id]
-	if !exists {
-		return DownloadStatus{}, false
-	}
-	return *status, true
-}
-
-func (dm *DownloadManager) RemoveStatus(id uint) {
-	dm.mutex.Lock()
-	defer dm.mutex.Unlock()
-	delete(dm.downloads, id)
 }
 
 func generateToken() string {

@@ -65,17 +65,8 @@
                 {{.Title}}
                 {{end}}
             </div>
+            <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
             <div class="video-options">
-                {{if eq .Status "completed"}}
-                <form action="/p/{{.ID}}/process" method="post" style="display:inline;">
-                    <button type="submit">Reprocess</button>
-                </form>
-                {{else if eq .Status "failed"}}
-                <form action="/p/{{.ID}}/restart" method="post" style="display:inline;">
-                    <button type="submit">Restart</button>
-                </form>
-                {{else if eq .Status "downloading"}}
-                {{end}}
                 <form action="/p/{{.ID}}/delete" method="post" style="display:inline;">
                     <button type="submit">Delete</button>
                 </form>

@@ -12,45 +12,19 @@
 </head>
 
 <body>
-    <h1>Playlist</h1>
+    <h1>{{.playlist.Title}}</h1>
+    <h2>Playlist</h2>
 
     <div class="video-list">
-        {{range .originals}}
-        <div class="video-card">
-            <div class="video-title">
-                {{if or (eq .Status "download completed") (eq .Status "transcoding") (eq .Status "completed")}}
-                <a href="/video/{{.ID}}">{{.Title}}</a>
-                {{else}}
-                {{.Title}}
-                {{end}}
-            </div>
-            <div class="video-info">{{.Artist}}</div>
-            <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
-            <div class="video-info">{{.Status}}</div>
-            <div class="video-info">
-                {{if .Audio}}
-                Audio
-                {{end}}
-                {{if .Video}}
-                Video
-                {{end}}
-            </div>
-            <div class="video-options">
-                {{if eq .Status "completed"}}
-                <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
-                    <button type="submit">Reprocess</button>
-                </form>
-                {{else if eq .Status "failed"}}
-                <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
-                    <button type="submit">Restart</button>
-                </form>
-                {{else if eq .Status "downloading"}}
-                {{end}}
-                <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
-                    <button type="submit">Delete</button>
-                </form>
-            </div>
-        </div>
+        {{range .unwatched}}
+        {{template "playlist-video-card-html" .}}
+        {{end}}
+    </div>
+
+    <h2>Watched</h2>
+    <div class="video-list">
+        {{range .watched}}
+        {{template "playlist-video-card-html" .}}
         {{end}}
     </div>
 

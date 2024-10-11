@@ -8,7 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"ytdlp-site/database"
+	"ytdlp-site/handlers"
 	"ytdlp-site/media"
+	"ytdlp-site/originals"
+	"ytdlp-site/playlists"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
@@ -46,6 +50,8 @@ func main() {
 	log.Infof("GitSHA: %s", getGitSHA())
 	log.Infof("BuildDate: %s", getBuildDate())
 
+	handlers.Init(log)
+
 	gormLogger := logger.New(
 		golog.New(os.Stdout, "\r\n", golog.LstdFlags), // io writer
 		logger.Config{
@@ -80,7 +86,12 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 
 	// Migrate the schema
-	db.AutoMigrate(&Original{}, &Playlist{}, &media.Video{}, &media.Audio{}, &User{}, &TempURL{}, &Transcode{})
+	db.AutoMigrate(&originals.Original{}, &playlists.Playlist{}, &media.Video{},
+		&media.Audio{}, &User{}, &TempURL{}, &Transcode{})
+
+	database.Init(db, log)
+	defer database.Fini()
+
 	go PeriodicCleanup()
 
 	// create a user
@@ -124,6 +135,7 @@ func main() {
 	e.POST("/video/:id/delete", deleteOriginalHandler, authMiddleware)
 	e.GET("/temp/:token", tempHandler)
 	e.POST("/video/:id/process", processHandler, authMiddleware)
+	e.POST("/video/:id/toggle_watched", handlers.ToggleWatched, authMiddleware)
 	e.POST("/delete_video/:id", deleteVideoHandler, authMiddleware)
 	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
 	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, authMiddleware)

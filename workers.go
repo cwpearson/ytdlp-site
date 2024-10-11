@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"ytdlp-site/media"
+	"ytdlp-site/originals"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -67,7 +68,7 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 	// look up original
 	var trans Transcode
 	db.First(&trans, transID)
-	var orig Original
+	var orig originals.Original
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create video record
@@ -129,7 +130,7 @@ func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 	// look up original
 	var trans Transcode
 	db.First(&trans, "id = ?", transID)
-	var orig Original
+	var orig originals.Original
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
@@ -187,7 +188,7 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 	// look up original
 	var trans Transcode
 	db.First(&trans, "id = ?", transID)
-	var orig Original
+	var orig originals.Original
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
@@ -225,29 +226,29 @@ func transcodePending() {
 		var originalsToUpdate []uint
 
 		// find any originals with a transcode job and mark them as transcoding
-		db.Model(&Original{}).
+		db.Model(&originals.Original{}).
 			Select("id").
 			Where("id IN (?)",
 				db.Model(&Transcode{}).
 					Select("original_id"),
 			).
 			Find(&originalsToUpdate)
-		db.Model(&Original{}).
+		db.Model(&originals.Original{}).
 			Where("id IN ?", originalsToUpdate).
-			Update("status", Transcoding)
+			Update("status", originals.StatusTranscoding)
 
 		// originals marked transcoding that don't have a transcode job -> complete
-		db.Model(&Original{}).
+		db.Model(&originals.Original{}).
 			Select("id").
 			Where("status = ? AND id NOT IN (?)",
-				Transcoding,
+				originals.StatusTranscoding,
 				db.Model(&Transcode{}).
 					Select("original_id"),
 			).
 			Find(&originalsToUpdate)
-		db.Model(&Original{}).
-			Where("id IN ? AND status = ?", originalsToUpdate, Transcoding).
-			Update("status", Completed)
+		db.Model(&originals.Original{}).
+			Where("id IN ? AND status = ?", originalsToUpdate, originals.StatusTranscoding).
+			Update("status", originals.StatusCompleted)
 
 		var trans Transcode
 		err := db.Where("status = ?", "pending").

@@ -1,0 +1,56 @@
+{{define "playlist-video-card-html"}}
+<div class="video-card">
+    <div class="video-title">
+        {{if or (eq .Status "download completed") (eq .Status "transcoding") (eq .Status "completed")}}
+        <a href="/video/{{.ID}}">{{.Title}}</a>
+        {{else}}
+        {{.Title}}
+        {{end}}
+    </div>
+    <div class="video-info">{{.Artist}}</div>
+    <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
+    <div class="video-info">{{.Status}}</div>
+    <div class="video-info">
+        {{if .Audio}}
+        Audio
+        {{end}}
+        {{if .Video}}
+        Video
+        {{end}}
+    </div>
+    <div class="video-options">
+        {{if or (eq .Status "completed") (eq .Status "not started")}}
+        <form action="/video/{{.ID}}/toggle_watched" method="post" style="display:inline;">
+            <button type="submit">
+                {{ if .Watched }}
+                Not Watched
+                {{ else }}
+                Watched
+                {{ end }}
+            </button>
+        </form>
+        {{end}}
+        {{if eq .Status "completed"}}
+        <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
+            <button type="submit">Reprocess</button>
+        </form>
+        {{else if eq .Status "failed"}}
+        <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
+            <button type="submit">Restart</button>
+        </form>
+        {{end}}
+        {{if eq .Status "not started"}}
+        <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
+            <button type="submit">Start</button>
+        </form>
+        {{end}}
+        <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "playlist-video-card-css"}}
+<!-- <link rel="stylesheet" href="/static/style/footer.css"> -->
+{{end}}

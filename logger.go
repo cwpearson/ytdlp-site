@@ -12,7 +12,6 @@ import (
 var log *logrus.Logger
 
 func initLogger() {
-
 	log = logrus.New()
 	log.SetOutput(os.Stdout)
 	log.SetLevel(logrus.DebugLevel)

@@ -7,7 +7,11 @@ RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux 
  && chmod +x /usr/local/bin/yt-dlp
 
 ADD *.go /src/.
+ADD database /src/database
+ADD handlers /src/handlers
 ADD media /src/media
+ADD originals /src/originals
+Add playlists /src/playlists
 ADD go.mod /src/.
 
 RUN cd /src && go mod tidy
