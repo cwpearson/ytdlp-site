@@ -3,7 +3,7 @@ ARG GIT_SHA="<not provided>"
 
 
 RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests wget
-RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -O /usr/local/bin/yt-dlp \
+RUN wget -q -d https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -O /usr/local/bin/yt-dlp \
  && chmod +x /usr/local/bin/yt-dlp
 
 ADD *.go /src/.
