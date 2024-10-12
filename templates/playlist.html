@@ -8,13 +8,12 @@
     <title>Playlist</title>
     <link rel="stylesheet" href="/static/style/common.css">
     <link rel="stylesheet" href="/static/style/videos.css">
+    {{template "playlist-video-card-css" .}}
     {{template "footer-css" .}}
 </head>
 
 <body>
     <h1>{{.playlist.Title}}</h1>
-    <h2>Playlist</h2>
-
     <div class="video-list">
         {{range .unwatched}}
         {{template "playlist-video-card-html" .}}

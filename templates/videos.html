@@ -48,7 +48,7 @@
                 {{else if eq .Status "downloading"}}
                 {{end}}
                 <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
-                    <button type="submit">Delete</button>
+                    <button type="submit" class="delete-btn">Delete</button>
                 </form>
             </div>
         </div>
@@ -69,7 +69,7 @@
             <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
             <div class="video-options">
                 <form action="/p/{{.ID}}/delete" method="post" style="display:inline;">
-                    <button type="submit">Delete</button>
+                    <button type="submit" class="delete-btn">Delete</button>
                 </form>
             </div>
         </div>

@@ -45,12 +45,12 @@
         </form>
         {{end}}
         <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
-            <button type="submit">Delete</button>
+            <button class="delete-btn" type="submit">Delete</button>
         </form>
     </div>
 </div>
 {{end}}
 
 {{define "playlist-video-card-css"}}
-<!-- <link rel="stylesheet" href="/static/style/footer.css"> -->
+<link rel="stylesheet" href="/static/style/video-card.css">
 {{end}}

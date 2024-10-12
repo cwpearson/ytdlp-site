@@ -33,3 +33,8 @@
     cursor: pointer;
     border-radius: 4px;
 }
+
+.video-options .delete-btn {
+    background-color: rgb(255, 70, 70);
+    color: white;
+}
