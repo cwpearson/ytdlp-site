@@ -8,11 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"ytdlp-site/database"
-	"ytdlp-site/handlers"
-	"ytdlp-site/media"
-	"ytdlp-site/originals"
-	"ytdlp-site/playlists"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
@@ -20,6 +15,13 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"ytdlp-site/database"
+	"ytdlp-site/handlers"
+	"ytdlp-site/media"
+	"ytdlp-site/originals"
+	"ytdlp-site/playlists"
+	"ytdlp-site/ytdlp"
 )
 
 var db *gorm.DB
@@ -51,6 +53,7 @@ func main() {
 	log.Infof("BuildDate: %s", getBuildDate())
 
 	handlers.Init(log)
+	ytdlp.Init(log)
 
 	gormLogger := logger.New(
 		golog.New(os.Stdout, "\r\n", golog.LstdFlags), // io writer

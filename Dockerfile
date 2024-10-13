@@ -12,6 +12,7 @@ ADD handlers /src/handlers
 ADD media /src/media
 ADD originals /src/originals
 Add playlists /src/playlists
+Add ytdlp /src/ytdlp
 ADD go.mod /src/.
 
 RUN cd /src && go mod tidy

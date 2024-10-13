@@ -11,13 +11,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"ytdlp-site/media"
-	"ytdlp-site/originals"
-	"ytdlp-site/playlists"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+
+	"ytdlp-site/media"
+	"ytdlp-site/originals"
+	"ytdlp-site/playlists"
+	"ytdlp-site/ytdlp"
 )
 
 type Footer struct {
@@ -175,7 +177,7 @@ type Meta struct {
 
 func getYtdlpTitle(url string, args []string) (string, error) {
 	args = append(args, "--simulate", "--print", "%(title)s", url)
-	stdout, _, err := runYtdlp(args...)
+	stdout, _, err := ytdlp.Run(args...)
 	if err != nil {
 		log.Errorln(err)
 		return "", err
@@ -195,7 +197,7 @@ type PlaylistData struct {
 
 func getYtdlpPlaylist(url string) (PlaylistData, error) {
 	var data PlaylistData
-	stdout, _, err := runYtdlp("--flat-playlist", "--dump-single-json", url)
+	stdout, _, err := ytdlp.Run("--flat-playlist", "--dump-single-json", url)
 	if err != nil {
 		log.Errorln(err)
 		return data, err
@@ -211,7 +213,7 @@ func getYtdlpPlaylist(url string) (PlaylistData, error) {
 
 func getYtdlpArtist(url string, args []string) (string, error) {
 	args = append(args, "--simulate", "--print", "%(uploader)s", url)
-	stdout, _, err := runYtdlp(args...)
+	stdout, _, err := ytdlp.Run(args...)
 	if err != nil {
 		log.Errorln(err)
 		return "", err
@@ -221,7 +223,7 @@ func getYtdlpArtist(url string, args []string) (string, error) {
 
 func getYtdlpExt(url string, args []string) (string, error) {
 	args = append(args, "--simulate", "--print", "%(ext)s", url)
-	stdout, _, err := runYtdlp(args...)
+	stdout, _, err := ytdlp.Run(args...)
 	if err != nil {
 		log.Errorln(err)
 		return "", err
