@@ -651,11 +651,13 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		}
 
 		audio := media.Audio{
+			MediaFile: media.MediaFile{
+				Length: mediaMeta.length,
+				Size:   mediaMeta.size,
+			},
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
-			Length:     mediaMeta.length,
-			Size:       mediaMeta.size,
 		}
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
@@ -672,14 +674,16 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		}
 
 		video := media.Video{
+			MediaFile: media.MediaFile{
+				Length: mediaMeta.length,
+				Size:   mediaMeta.size,
+			},
 			OriginalID: originalID,
 			Filename:   dlFilename,
 			Source:     "original",
 			FPS:        mediaMeta.fps,
 			Width:      mediaMeta.width,
 			Height:     mediaMeta.height,
-			Length:     mediaMeta.length,
-			Size:       mediaMeta.size,
 		}
 		log.Debugln("create Video", video)
 		if db.Create(&video).Error != nil {

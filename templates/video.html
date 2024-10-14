@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="/static/style/common.css">
     <link rel="stylesheet" href="/static/style/video.css">
     <link rel="stylesheet" href="/static/style/media-card.css">
+    {{template "header-css" .}}
     {{template "footer-css" .}}
 </head>
 
 <body>
-
+    {{template "header" .}}
     <h1>{{.original.Title}}</h1>
-
     <div class="media-grid">
         {{range .videos}}
         <div class="media-card">

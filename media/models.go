@@ -11,30 +11,31 @@ const (
 	Failed      Status = "failed"
 )
 
+type MediaFile struct {
+	Size   int64
+	Length float64
+	Type   string
+	Codec  string
+}
+
 type Audio struct {
 	gorm.Model
+	MediaFile
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
 	Bps        uint
-	Length     float64
-	Size       int64
-	Type       string
-	Codec      string
 	Filename   string
 	Status     Status
 }
 
 type Video struct {
 	gorm.Model
+	MediaFile
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
 	Filename   string
 	Width      uint
 	Height     uint
 	FPS        float64
-	Length     float64
-	Size       int64
-	Type       string
-	Codec      string
 	Status     Status
 }
