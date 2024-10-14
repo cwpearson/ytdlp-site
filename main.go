@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"ytdlp-site/database"
+	"ytdlp-site/ffmpeg"
 	"ytdlp-site/handlers"
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
@@ -52,6 +53,7 @@ func main() {
 	log.Infof("GitSHA: %s", getGitSHA())
 	log.Infof("BuildDate: %s", getBuildDate())
 
+	ffmpeg.Init(log)
 	handlers.Init(log)
 	ytdlp.Init(log)
 

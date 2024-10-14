@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"ytdlp-site/ffmpeg"
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
 	"ytdlp-site/playlists"
@@ -258,7 +259,7 @@ func getYtdlpVideoMeta(url string) (Meta, error) {
 
 // return the length in seconds of a video file at `path`
 func getLength(path string) (float64, error) {
-	stdout, _, err := runFfprobe("-v", "error", "-show_entries", "format=duration",
+	stdout, _, err := ffmpeg.Ffprobe("-v", "error", "-show_entries", "format=duration",
 		"-of", "default=noprint_wrappers=1:nokey=1", path)
 	if err != nil {
 		log.Errorln("ffprobe error:", err)
@@ -273,7 +274,7 @@ func getLength(path string) (float64, error) {
 }
 
 func getVideoWidth(path string) (uint, error) {
-	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
+	stdout, _, err := ffmpeg.Ffprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
 		"stream=width", "-of", "csv=p=0", path)
 
@@ -290,7 +291,7 @@ func getVideoWidth(path string) (uint, error) {
 }
 
 func getVideoHeight(path string) (uint, error) {
-	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
+	stdout, _, err := ffmpeg.Ffprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
 		"stream=height", "-of", "csv=p=0", path)
 
@@ -308,7 +309,7 @@ func getVideoHeight(path string) (uint, error) {
 
 func getVideoFPS(path string) (float64, error) {
 
-	stdout, _, err := runFfprobe("-v", "error", "-select_streams",
+	stdout, _, err := ffmpeg.Ffprobe("-v", "error", "-select_streams",
 		"v:0", "-count_packets", "-show_entries",
 		"stream=r_frame_rate", "-of", "csv=p=0", path)
 	if err != nil {
@@ -421,7 +422,7 @@ func getVideoMeta(path string) (VideoMeta, error) {
 
 func getAudioDuration(path string) (float64, error) {
 
-	stdout, _, err := runFfprobe("-v", "error",
+	stdout, _, err := ffmpeg.Ffprobe("-v", "error",
 		"-show_entries", "format=duration",
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		path)

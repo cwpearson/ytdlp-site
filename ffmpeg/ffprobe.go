@@ -1,4 +1,4 @@
-package ytdlp
+package ffmpeg
 
 import (
 	"bytes"
@@ -7,10 +7,10 @@ import (
 )
 
 // runs ffprobe with the provided args and returns (stdout, stderr, error)
-func Run(args ...string) ([]byte, []byte, error) {
-	ytdlp := "yt-dlp"
-	log.Infoln(ytdlp, strings.Join(args, " "))
-	cmd := exec.Command(ytdlp, args...)
+func Ffprobe(args ...string) ([]byte, []byte, error) {
+	ffprobe := "ffprobe"
+	log.Infoln(ffprobe, strings.Join(args, " "))
+	cmd := exec.Command(ffprobe, args...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -18,7 +18,7 @@ func Run(args ...string) ([]byte, []byte, error) {
 	err := cmd.Run()
 
 	if err != nil {
-		log.Errorf("yt-dlp error: %v", err)
+		log.Errorf("ffprobe error: %v", err)
 	}
 	log.Infoln("stdout:", stdout.String())
 	log.Infoln("stderr:", stderr.String())

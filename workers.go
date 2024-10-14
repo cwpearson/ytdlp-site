@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
+	"ytdlp-site/ffmpeg"
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
 
@@ -48,20 +46,14 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 	}
 
 	// start ffmpeg
-	ffmpeg := "ffmpeg"
-	ffmpegArgs := []string{"-i", srcFilepath,
+	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
+	stdout, stderr, err := ffmpeg.Ffmpeg("-i", srcFilepath,
 		"-vf", fmt.Sprintf("scale=-2:%d", height), "-c:v", "libx264",
 		"-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", audioBitrate),
-		dstFilepath}
-	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
-	cmd := exec.Command(ffmpeg, ffmpegArgs...)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
-	err = cmd.Run()
+		dstFilepath)
 	if err != nil {
-		fmt.Println("Error: convert to video file", srcFilepath, "->", dstFilepath, stdout.String(), stderr.String())
+		fmt.Println("Error: convert to video file", srcFilepath, "->", dstFilepath, string(stdout), string(stderr))
+		db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "failed")
 		return
 	}
 
@@ -112,15 +104,11 @@ func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 		return
 	}
 
-	ffmpeg := "ffmpeg"
-	ffmpegArgs := []string{"-i", videoFilepath, "-vn", "-acodec",
+	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
+	_, _, err = ffmpeg.Ffmpeg("-i", videoFilepath, "-vn", "-acodec",
 		"mp3", "-b:a",
 		fmt.Sprintf("%dk", kbps),
-		audioFilepath}
-	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
-	cmd := exec.Command(ffmpeg, ffmpegArgs...)
-	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
-	err = cmd.Run()
+		audioFilepath)
 	if err != nil {
 		fmt.Println("Error: convert to audio file", videoFilepath, "->", audioFilepath)
 		db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "failed")
@@ -170,15 +158,11 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 		return
 	}
 
-	ffmpeg := "ffmpeg"
-	ffmpegArgs := []string{"-i", srcFilepath, "-vn", "-acodec",
+	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
+	_, _, err = ffmpeg.Ffmpeg("-i", srcFilepath, "-vn", "-acodec",
 		"mp3", "-b:a",
 		fmt.Sprintf("%dk", kbps),
-		dstFilepath}
-	fmt.Println(ffmpeg, strings.Join(ffmpegArgs, " "))
-	cmd := exec.Command(ffmpeg, ffmpegArgs...)
-	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
-	err = cmd.Run()
+		dstFilepath)
 	if err != nil {
 		fmt.Println("Error: convert to audio file", srcFilepath, "->", dstFilepath)
 		db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "failed")

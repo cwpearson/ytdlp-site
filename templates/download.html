@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/style/common.css">
+    <link rel="stylesheet" href="/static/style/download.css">
     {{template "footer-css" .}}
     <title>Download Video</title>
 </head>
@@ -13,11 +14,12 @@
     <h1>Download Video</h1>
     <form method="POST">
         <input type="url" name="url" placeholder="Video URL" required>
-        <input type="radio" id="audio-video" name="color" value="audio-video" checked>
-        <label for="audio-video">Audio/Video</label>
-        <input type="radio" id="audio-video" name="color" value="audio">
-        <label for="audio">Audio Only</label>
-
+        <div class="radio-group">
+            <input type="radio" id="audio-video" name="color" value="audio-video" checked>
+            <label for="audio-video">Audio/Video</label>
+            <input type="radio" id="audio-video" name="color" value="audio">
+            <label for="audio">Audio Only</label>
+        </div>
         <button type="submit">Download</button>
     </form>
     <a href="/videos">View Downloaded Videos</a>

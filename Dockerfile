@@ -8,6 +8,7 @@ RUN wget -q -d https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_
 
 ADD *.go /src/.
 ADD database /src/database
+Add ffmpeg /src/ffmpeg
 ADD handlers /src/handlers
 ADD media /src/media
 ADD originals /src/originals

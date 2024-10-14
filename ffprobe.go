@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
+	"ytdlp-site/ffmpeg"
 )
 
 type FFProbeOutput struct {
@@ -15,27 +14,8 @@ type FFProbeOutput struct {
 	} `json:"streams"`
 }
 
-// runs ffprobe with the provided args and returns (stdout, stderr, error)
-func runFfprobe(args ...string) ([]byte, []byte, error) {
-	ffprobe := "ffprobe"
-	log.Infoln(ffprobe, strings.Join(args, " "))
-	cmd := exec.Command(ffprobe, args...)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-
-	if err != nil {
-		log.Errorf("ffprobe error: %v", err)
-	}
-	log.Infoln("stdout:", stdout.String())
-	log.Infoln("stderr:", stderr.String())
-	return stdout.Bytes(), stderr.Bytes(), err
-}
-
 func getAudioFormat(filename string) (string, error) {
-	output, _, err := runFfprobe("-v", "quiet", "-print_format", "json", "-show_streams", filename)
+	output, _, err := ffmpeg.Ffprobe("-v", "quiet", "-print_format", "json", "-show_streams", filename)
 	if err != nil {
 		log.Errorln("ffprobe error:", err)
 		return "", err
@@ -65,7 +45,7 @@ func getStreamBitrate(path string, stream int) (uint, error) {
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		path}
 
-	stdout, _, err := runFfprobe(ffprobeArgs...)
+	stdout, _, err := ffmpeg.Ffprobe(ffprobeArgs...)
 	if err != nil {
 		fmt.Println("ffprobe error:", err, string(stdout))
 		return 0, err
@@ -87,7 +67,7 @@ func getFormatBitrate(path string) (uint, error) {
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		path}
 
-	stdout, _, err := runFfprobe(ffprobeArgs...)
+	stdout, _, err := ffmpeg.Ffprobe(ffprobeArgs...)
 	if err != nil {
 		fmt.Println("ffprobe error:", err, string(stdout))
 		return 0, err
