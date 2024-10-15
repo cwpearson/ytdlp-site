@@ -66,5 +66,5 @@ Build and push this container to ghcr
 - [ ] Link to author on videos page
 - [ ] video clips
 - [ ] move original video to bottom
-- [ ] sort videos most to least recent
-- [ ] header on playlist page
+- [x] sort videos most to least recent
+- [x] header on playlist page
