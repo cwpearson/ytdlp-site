@@ -734,10 +734,10 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 func videosHandler(c echo.Context) error {
 	userID := c.Get("user_id").(uint)
 	var origs []originals.Original
-	db.Where("user_id = ?", userID).Find(&origs)
+	db.Where("user_id = ?", userID).Order("id DESC").Find(&origs)
 
 	var playlists []playlists.Playlist
-	db.Where("user_id = ?", userID).Find(&playlists)
+	db.Where("user_id = ?", userID).Order("id DESC").Find(&playlists)
 
 	return c.Render(http.StatusOK, "videos.html",
 		map[string]interface{}{
@@ -815,12 +815,12 @@ func videoHandler(c echo.Context) error {
 
 	var videos []media.Video
 	db.Where("original_id = ?", id).
-		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, height ASC").
+		Order("CASE WHEN source = 'original' THEN 1 ELSE 0 END, height ASC").
 		Find(&videos)
 
 	var audios []media.Audio
 	db.Where("original_id = ?", id).
-		Order("CASE WHEN source = 'original' THEN 0 ELSE 1 END, bps ASC").
+		Order("CASE WHEN source = 'original' THEN 1 ELSE 0 END, bps ASC").
 		Find(&audios)
 
 	dataDir := getDataDir()
