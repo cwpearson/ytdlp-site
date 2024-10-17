@@ -18,7 +18,7 @@ Add ytdlp /src/ytdlp
 ADD go.mod /src/.
 
 RUN cd /src && go mod tidy
-RUN cd /src && go build -ldflags "-X main.GitSHA=${GIT_SHA} -X main.BuildDate=$(date +%Y-%m-%d)" -o server *.go
+RUN cd /src && go build -ldflags "-X ytdlp-site/config.gitSHA=${GIT_SHA} -X ytdlp-site/config.buildDate=$(date +%Y-%m-%d)" -o server *.go
 
 FROM debian:bookworm-slim
 
