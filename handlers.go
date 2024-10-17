@@ -486,13 +486,14 @@ func addAudioTranscode(mediaId, originalId, bitrate uint, srcKind string) {
 	db.Create(&t)
 }
 
-func addVideoTranscode(videoId, originalId, targetHeight uint) {
+func addVideoTranscode(videoId, originalId, targetHeight uint, targetFPS float64) {
 	t := Transcode{
 		SrcID:      videoId,
 		OriginalID: originalId,
 		SrcKind:    "video",
 		DstKind:    "video",
 		Height:     targetHeight,
+		FPS:        targetFPS,
 		TimeSubmit: time.Now(),
 		Status:     "pending",
 	}
@@ -532,7 +533,7 @@ func processOriginal(originalID uint) {
 		// create video transcodes
 		for _, targetHeight := range []uint{480, 240, 144} {
 			if targetHeight <= video.Height {
-				addVideoTranscode(video.ID, originalID, targetHeight)
+				addVideoTranscode(video.ID, originalID, targetHeight, video.FPS)
 				break
 			}
 		}
@@ -1045,6 +1046,7 @@ func deleteAudioHandler(c echo.Context) error {
 func transcodeToVideoHandler(c echo.Context) error {
 	originalId, _ := strconv.ParseUint(c.FormValue("original_id"), 10, 32)
 	height, _ := strconv.ParseUint(c.FormValue("height"), 10, 32)
+	fps, _ := strconv.ParseFloat(c.FormValue("fps"), 64)
 	referrer := c.Request().Referer()
 	if referrer == "" {
 		referrer = "/"
@@ -1055,7 +1057,7 @@ func transcodeToVideoHandler(c echo.Context) error {
 	if err == gorm.ErrRecordNotFound {
 		log.Errorf("no video record for original %d: %v", originalId, err)
 	} else {
-		addVideoTranscode(video.ID, uint(originalId), uint(height))
+		addVideoTranscode(video.ID, uint(originalId), uint(height), fps)
 	}
 
 	return c.Redirect(http.StatusSeeOther, referrer)

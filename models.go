@@ -23,9 +23,9 @@ type Transcode struct {
 	TimeStart  time.Time
 
 	// video fields
-	Height uint // target height
-	Width  uint // target width
-	FPS    uint // target FPS
+	Height uint    // target height
+	Width  uint    // target width
+	FPS    float64 // target FPS
 
 	// audio & video fields
 	Rate uint

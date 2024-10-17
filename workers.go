@@ -19,7 +19,7 @@ func ensureDirFor(path string) error {
 	return os.MkdirAll(dir, 0700)
 }
 
-func videoToVideo(transID uint, height uint, srcFilepath string) {
+func videoToVideo(transID uint, height uint, fps float64, srcFilepath string) {
 
 	// determine destination path
 	dstFilename := uuid.Must(uuid.NewV7()).String()
@@ -47,8 +47,14 @@ func videoToVideo(transID uint, height uint, srcFilepath string) {
 
 	// start ffmpeg
 	db.Model(&Transcode{}).Where("id = ?", transID).Update("status", "running")
+	var vf string
+	if fps > 0 {
+		vf = fmt.Sprintf("scale=-2:%d,fps=%f", height, fps)
+	} else {
+		vf = fmt.Sprintf("scale=-2:%d", height)
+	}
 	stdout, stderr, err := ffmpeg.Ffmpeg("-i", srcFilepath,
-		"-vf", fmt.Sprintf("scale=-2:%d", height), "-c:v", "libx264",
+		"-vf", vf, "-c:v", "libx264",
 		"-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", audioBitrate),
 		dstFilepath)
 	if err != nil {
@@ -258,7 +264,7 @@ func transcodePending() {
 			srcFilepath := filepath.Join(getDataDir(), srcVideo.Filename)
 
 			if trans.DstKind == "video" {
-				videoToVideo(trans.ID, trans.Height, srcFilepath)
+				videoToVideo(trans.ID, trans.Height, trans.FPS, srcFilepath)
 			} else if trans.DstKind == "audio" {
 				videoToAudio(trans.ID, trans.Rate, srcFilepath)
 			} else {
