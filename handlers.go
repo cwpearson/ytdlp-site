@@ -178,7 +178,14 @@ type Meta struct {
 
 func getYtdlpTitle(url string, args []string) (string, error) {
 	args = append(args, "--simulate", "--print", "%(title)s", url)
-	stdout, _, err := ytdlp.Run(args...)
+
+	cmd, cancel, err := ytdlp.Start(args...)
+	defer cancel()
+	if err != nil {
+		log.Errorln(err)
+		return "", err
+	}
+	stdout, _, err := cmd.Wait()
 	if err != nil {
 		log.Errorln(err)
 		return "", err
@@ -541,7 +548,7 @@ func processOriginal(originalID uint) {
 
 		// create audio transcodes
 		for _, bitrate := range []uint{64 /*, 96, 128, 160, 192*/} {
-			addAudioTranscode(video.ID, originalID, bitrate, "audio")
+			addAudioTranscode(audio.ID, originalID, bitrate, "audio")
 		}
 
 	} else {

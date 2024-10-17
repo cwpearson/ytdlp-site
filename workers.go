@@ -270,7 +270,7 @@ func transcodePending() {
 			var srcAudio media.Audio
 			err = db.First(&srcAudio, "id = ?", trans.SrcID).Error
 			if err != nil {
-				fmt.Println("no such source audio for audio Transcode", trans)
+				log.Errorln("no such source audio for audio Transcode", trans)
 				db.Delete(&trans)
 				continue
 			}
