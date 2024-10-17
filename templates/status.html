@@ -28,6 +28,10 @@
                 {{.ffmpeg}}
             </div>
         </div>
+        <div class="disk-space card">
+            <h2>Disk</h2>
+            {{.used}} MiB ({{.free}} MiB remaning)
+        </div>
     </div>
     {{template "footer" .}}
 </body>
