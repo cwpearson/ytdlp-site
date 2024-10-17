@@ -16,26 +16,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"ytdlp-site/config"
 	"ytdlp-site/ffmpeg"
+	"ytdlp-site/handlers"
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
 	"ytdlp-site/playlists"
 	"ytdlp-site/ytdlp"
 )
-
-type Footer struct {
-	BuildDate    string
-	BuildId      string
-	BuildIdShort string
-}
-
-func makeFooter() Footer {
-	return Footer{
-		BuildDate:    getBuildDate(),
-		BuildId:      getGitSHA(),
-		BuildIdShort: getGitSHA()[0:7],
-	}
-}
 
 var ytdlpAudioOptions = []string{"-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]"}
 var ytdlpVideoOptions = []string{"-f", "bestaudio"}
@@ -71,7 +59,7 @@ func homeHandler(c echo.Context) error {
 
 	return c.Render(http.StatusOK, "home.html",
 		map[string]interface{}{
-			"Footer": makeFooter(),
+			"Footer": handlers.MakeFooter(),
 		})
 }
 
@@ -123,7 +111,7 @@ func logoutHandler(c echo.Context) error {
 func downloadHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "download.html",
 		map[string]interface{}{
-			"Footer": makeFooter(),
+			"Footer": handlers.MakeFooter(),
 		})
 }
 
@@ -518,7 +506,7 @@ func processOriginal(originalID uint) {
 
 	if hasOriginalVideo {
 
-		videoFilepath := filepath.Join(getDataDir(), video.Filename)
+		videoFilepath := filepath.Join(config.GetDataDir(), video.Filename)
 		_, err := os.Stat(videoFilepath)
 		if os.IsNotExist(err) {
 			fmt.Println("Skipping non-existant file for processOriginal")
@@ -540,7 +528,7 @@ func processOriginal(originalID uint) {
 
 	} else if hasOriginalAudio {
 
-		audioFilepath := filepath.Join(getDataDir(), audio.Filename)
+		audioFilepath := filepath.Join(config.GetDataDir(), audio.Filename)
 		_, err := os.Stat(audioFilepath)
 		if os.IsNotExist(err) {
 			fmt.Println("Skipping non-existant audio file for processOriginal")
@@ -591,7 +579,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 	// create temporary directory
 	// do this in the data directory since /tmp is sometimes a different filesystem
-	tempDir, err := os.MkdirTemp(getDataDir(), "dl")
+	tempDir, err := os.MkdirTemp(config.GetDataDir(), "dl")
 	if err != nil {
 		log.Errorln("Error creating temporary directory:", err)
 		originals.SetStatus(db, originalID, originals.StatusFailed)
@@ -641,7 +629,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 	// move to data directory
 	srcPath := filepath.Join(tempDir, dlFilename)
-	dlFilepath := filepath.Join(getDataDir(), dlFilename)
+	dlFilepath := filepath.Join(config.GetDataDir(), dlFilename)
 	log.Debugln("rename", srcPath, "->", dlFilepath)
 	err = os.Rename(srcPath, dlFilepath)
 	if err != nil {
@@ -751,7 +739,7 @@ func videosHandler(c echo.Context) error {
 		map[string]interface{}{
 			"videos":    origs,
 			"playlists": playlists,
-			"Footer":    makeFooter(),
+			"Footer":    handlers.MakeFooter(),
 		})
 }
 
@@ -831,7 +819,7 @@ func videoHandler(c echo.Context) error {
 		Order("CASE WHEN source = 'original' THEN 1 ELSE 0 END, bps ASC").
 		Find(&audios)
 
-	dataDir := getDataDir()
+	dataDir := config.GetDataDir()
 
 	// create temporary URLs
 	var videoURLs []VideoTemplate
@@ -884,7 +872,7 @@ func videoHandler(c echo.Context) error {
 			"videos":   videoURLs,
 			"audios":   audioURLs,
 			"dataDir":  dataDir,
-			"Footer":   makeFooter(),
+			"Footer":   handlers.MakeFooter(),
 		})
 }
 
@@ -917,7 +905,7 @@ func deleteTranscodedVideos(originalID uint) {
 	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "transcode").Find(&videos)
 	for _, video := range videos {
-		path := filepath.Join(getDataDir(), video.Filename)
+		path := filepath.Join(config.GetDataDir(), video.Filename)
 		log.Debugln("remove video", path)
 		err := os.Remove(path)
 		if err != nil {
@@ -931,7 +919,7 @@ func deleteOriginalVideos(originalID uint) {
 	var videos []media.Video
 	db.Where("original_id = ?", originalID).Where("source = ?", "original").Find(&videos)
 	for _, video := range videos {
-		path := filepath.Join(getDataDir(), video.Filename)
+		path := filepath.Join(config.GetDataDir(), video.Filename)
 		fmt.Println("remove", path)
 		err := os.Remove(path)
 		if err != nil {
@@ -945,7 +933,7 @@ func deleteAudiosWithSource(originalID uint, source string) {
 	var audios []media.Audio
 	db.Where("original_id = ?", originalID).Where("source = ?", source).Find(&audios)
 	for _, audio := range audios {
-		path := filepath.Join(getDataDir(), audio.Filename)
+		path := filepath.Join(config.GetDataDir(), audio.Filename)
 		log.Debugln("remove audio", path)
 		err := os.Remove(path)
 		if err != nil {
@@ -987,7 +975,7 @@ func deleteVideo(id int) error {
 		return result.Error
 	}
 
-	videoPath := filepath.Join(getDataDir(), video.Filename)
+	videoPath := filepath.Join(config.GetDataDir(), video.Filename)
 	log.Debugln("remove", videoPath)
 	err := os.Remove(videoPath)
 	if err != nil {
@@ -1030,7 +1018,7 @@ func deleteAudioHandler(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, referrer)
 	}
 
-	filePath := filepath.Join(getDataDir(), audio.Filename)
+	filePath := filepath.Join(config.GetDataDir(), audio.Filename)
 	log.Debugln("remove", filePath)
 	err := os.Remove(filePath)
 	if err != nil {
@@ -1157,7 +1145,7 @@ func playlistHandler(c echo.Context) error {
 			"playlist":  playlist,
 			"unwatched": origs,
 			"watched":   watchedOrigs,
-			"Footer":    makeFooter(),
+			"Footer":    handlers.MakeFooter(),
 		})
 }
 

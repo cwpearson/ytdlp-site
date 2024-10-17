@@ -1,15 +1,16 @@
-package main
+package config
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-var GitSHA string
-var BuildDate string
+var gitSHA string
+var buildDate string
 
-func getDataDir() string {
+func GetDataDir() string {
 	value, exists := os.LookupEnv("YTDLP_SITE_DATA_DIR")
 	if exists {
 		return value
@@ -17,15 +18,11 @@ func getDataDir() string {
 	return "data"
 }
 
-func getConfigDir() string {
-	value, exists := os.LookupEnv("YTDLP_SITE_CONFIG_DIR")
-	if exists {
-		return value
-	}
-	return "config"
+func GetConfigDir() string {
+	return filepath.Join(GetDataDir(), "config")
 }
 
-func getAdminInitialPassword() (string, error) {
+func GetAdminInitialPassword() (string, error) {
 	key := "YTDLP_SITE_ADMIN_INITIAL_PASSWORD"
 	value, exists := os.LookupEnv(key)
 	if exists {
@@ -34,7 +31,7 @@ func getAdminInitialPassword() (string, error) {
 	return "", fmt.Errorf("please set %s", key)
 }
 
-func getSessionAuthKey() ([]byte, error) {
+func GetSessionAuthKey() ([]byte, error) {
 	key := "YTDLP_SITE_SESSION_AUTH_KEY"
 	value, exists := os.LookupEnv(key)
 	if exists {
@@ -43,7 +40,7 @@ func getSessionAuthKey() ([]byte, error) {
 	return []byte{}, fmt.Errorf("please set %s", key)
 }
 
-func getSecure() bool {
+func GetSecure() bool {
 	key := "YTDLP_SITE_SECURE"
 	if value, exists := os.LookupEnv(key); exists {
 		lower := strings.ToLower(value)
@@ -54,18 +51,18 @@ func getSecure() bool {
 	return false
 }
 
-func getGitSHA() string {
-	if GitSHA == "" {
+func GetGitSHA() string {
+	if gitSHA == "" {
 		return "<not provided>"
 	} else {
-		return GitSHA
+		return gitSHA
 	}
 }
 
-func getBuildDate() string {
-	if BuildDate == "" {
+func GetBuildDate() string {
+	if buildDate == "" {
 		return "<not provided>"
 	} else {
-		return BuildDate
+		return buildDate
 	}
 }

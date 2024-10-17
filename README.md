@@ -8,7 +8,7 @@ go mod tidy
 export YTDLP_SITE_ADMIN_INITIAL_PASSWORD=abc123
 export YTDLP_SITE_SESSION_AUTH_KEY=v9qpt37hc4qpmhf
 go run \
- -ldflags "-X main.GitSHA=$(git rev-parse HEAD) -X main.BuildDate=$(date +%Y-%m-%d)" \
+ -ldflags "-X ytdlp-site/config.gitSHA=$(git rev-parse HEAD) -X ytdlp-site/config.buildDate=$(date +%Y-%m-%d)" \
  *.go
 ```
 

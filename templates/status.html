@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.original.Title}}</title>
+    <link rel="stylesheet" href="/static/style/common.css">
+    <link rel="stylesheet" href="/static/style/video.css">
+    <link rel="stylesheet" href="/static/style/status.css">
+    {{template "header-css" .}}
+    {{template "footer-css" .}}
+</head>
+
+<body>
+    {{template "header" .}}
+    <h1>Status</h1>
+    <div class="ytdlp">
+        <h2>yt-dlp</h2>
+        <div class="raw">
+            {{.ytdlp}}
+        </div>
+    </div>
+    <div class="ffmpeg">
+        <h2>ffmpeg</h2>
+        <div class="raw">
+            {{.ffmpeg}}
+        </div>
+    </div>
+    {{template "footer" .}}
+</body>
+
+</html>

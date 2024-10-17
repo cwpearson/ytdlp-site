@@ -7,6 +7,7 @@ RUN wget -q -d https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_
  && chmod +x /usr/local/bin/yt-dlp
 
 ADD *.go /src/.
+ADD config /src/config
 ADD database /src/database
 Add ffmpeg /src/ffmpeg
 ADD handlers /src/handlers

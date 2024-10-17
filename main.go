@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"ytdlp-site/config"
 	"ytdlp-site/database"
 	"ytdlp-site/ffmpeg"
 	"ytdlp-site/handlers"
@@ -33,7 +34,7 @@ func ensureAdminAccount(db *gorm.DB) error {
 	if err := db.Where("username = ?", "admin").First(&user).Error; err != nil {
 		// no such user
 
-		password, err := getAdminInitialPassword()
+		password, err := config.GetAdminInitialPassword()
 		if err != nil {
 			return err
 		}
@@ -50,8 +51,8 @@ func main() {
 
 	initLogger()
 
-	log.Infof("GitSHA: %s", getGitSHA())
-	log.Infof("BuildDate: %s", getBuildDate())
+	log.Infof("GitSHA: %s", config.GetGitSHA())
+	log.Infof("BuildDate: %s", config.GetBuildDate())
 
 	ffmpeg.Init(log)
 	handlers.Init(log)
@@ -69,13 +70,13 @@ func main() {
 	)
 
 	// Create config database
-	err := os.MkdirAll(getConfigDir(), 0700)
+	err := os.MkdirAll(config.GetConfigDir(), 0700)
 	if err != nil {
-		log.Panicf("failed to create config dir %s", getConfigDir())
+		log.Panicf("failed to create config dir %s", config.GetConfigDir())
 	}
 
 	// Initialize database
-	dbPath := filepath.Join(getConfigDir(), "videos.db")
+	dbPath := filepath.Join(config.GetConfigDir(), "videos.db")
 	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: gormLogger,
 	})
@@ -106,7 +107,7 @@ func main() {
 	}
 
 	// create the cookie store
-	key, err := getSessionAuthKey()
+	key, err := config.GetSessionAuthKey()
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
@@ -145,19 +146,20 @@ func main() {
 	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
 	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, authMiddleware)
 	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, authMiddleware)
+	e.GET("/status", handlers.StatusGet, authMiddleware)
 
 	e.GET("/p/:id", playlistHandler, authMiddleware)
 	e.POST("/p/:id/delete", deletePlaylistHandler, authMiddleware)
 
 	dataGroup := e.Group("/data")
 	dataGroup.Use(authMiddleware)
-	dataGroup.Static("/", getDataDir())
+	dataGroup.Static("/", config.GetDataDir())
 
 	staticGroup := e.Group("/static")
 	staticGroup.Use(authMiddleware)
 	staticGroup.Static("/", "static")
 
-	secure := getSecure()
+	secure := config.GetSecure()
 
 	store.Options = &sessions.Options{
 		Path:     "/",

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"ytdlp-site/config"
 	"ytdlp-site/ffmpeg"
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
@@ -24,7 +25,7 @@ func videoToVideo(transID uint, height uint, fps float64, srcFilepath string) {
 	// determine destination path
 	dstFilename := uuid.Must(uuid.NewV7()).String()
 	dstFilename = fmt.Sprintf("%s.mp4", dstFilename)
-	dstFilepath := filepath.Join(getDataDir(), dstFilename)
+	dstFilepath := filepath.Join(config.GetDataDir(), dstFilename)
 
 	err := ensureDirFor(dstFilepath)
 	if err != nil {
@@ -100,7 +101,7 @@ func videoToAudio(transID uint, kbps uint, videoFilepath string) {
 	// determine destination path
 	audioFilename := uuid.Must(uuid.NewV7()).String()
 	audioFilename = fmt.Sprintf("%s.mp3", audioFilename)
-	audioFilepath := filepath.Join(getDataDir(), audioFilename)
+	audioFilepath := filepath.Join(config.GetDataDir(), audioFilename)
 
 	// ensure destination directory
 	err := ensureDirFor(audioFilepath)
@@ -154,7 +155,7 @@ func audioToAudio(transID uint, kbps uint, srcFilepath string) {
 	// determine destination path
 	dstFilename := uuid.Must(uuid.NewV7()).String()
 	dstFilename = fmt.Sprintf("%s.mp3", dstFilename)
-	dstFilepath := filepath.Join(getDataDir(), dstFilename)
+	dstFilepath := filepath.Join(config.GetDataDir(), dstFilename)
 
 	// ensure destination directory
 	err := ensureDirFor(dstFilepath)
@@ -261,7 +262,7 @@ func transcodePending() {
 				db.Delete(&trans)
 				continue
 			}
-			srcFilepath := filepath.Join(getDataDir(), srcVideo.Filename)
+			srcFilepath := filepath.Join(config.GetDataDir(), srcVideo.Filename)
 
 			if trans.DstKind == "video" {
 				videoToVideo(trans.ID, trans.Height, trans.FPS, srcFilepath)
@@ -280,7 +281,7 @@ func transcodePending() {
 				db.Delete(&trans)
 				continue
 			}
-			srcFilepath := filepath.Join(getDataDir(), srcAudio.Filename)
+			srcFilepath := filepath.Join(config.GetDataDir(), srcAudio.Filename)
 			audioToAudio(trans.ID, trans.Rate, srcFilepath)
 		} else {
 			fmt.Println("unexpected src kind for Transcode", trans)
