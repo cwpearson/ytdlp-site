@@ -55,10 +55,11 @@ Build and push this container to ghcr
 - [x] Provide a better name for downloaded files
 - [x] Environment variable to control whether "Secure" flag set on cookie
 - [x] Allow custom FPS for video transcode
-- [ ] Provide an about page
+- [x] Provide an about page
   - [x] `ffmpeg` version
   - [x] `yt-dlp` version
-  - disk space
+  - [x] disk space
+  - [ ] CPU history
 - [ ] skip buttons for audio player
 - [ ] Track progress via video URL rather than ID
 - [ ] Show author on video page
