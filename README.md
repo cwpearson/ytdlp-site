@@ -59,6 +59,7 @@ Build and push this container to ghcr
   - [x] `ffmpeg` version
   - [x] `yt-dlp` version
   - [x] disk space
+    - [ ] add progress bar to represent usage
   - [ ] CPU history
 - [ ] skip buttons for audio player
 - [ ] Track progress via video URL rather than ID
