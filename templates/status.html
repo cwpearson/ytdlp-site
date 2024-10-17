@@ -15,16 +15,18 @@
 <body>
     {{template "header" .}}
     <h1>Status</h1>
-    <div class="ytdlp">
-        <h2>yt-dlp</h2>
-        <div class="raw">
-            {{.ytdlp}}
+    <div class="status-container">
+        <div class="ytdlp card">
+            <h2>yt-dlp</h2>
+            <div class="raw">
+                {{.ytdlp}}
+            </div>
         </div>
-    </div>
-    <div class="ffmpeg">
-        <h2>ffmpeg</h2>
-        <div class="raw">
-            {{.ffmpeg}}
+        <div class="ffmpeg card">
+            <h2>ffmpeg</h2>
+            <div class="raw">
+                {{.ffmpeg}}
+            </div>
         </div>
     </div>
     {{template "footer" .}}

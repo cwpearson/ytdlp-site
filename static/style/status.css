@@ -1,0 +1,7 @@
+.status-container {
+    margin: 0.5rem;
+}
+
+.status-container .raw {
+    font-family: 'Courier New', Courier, monospace;
+}
