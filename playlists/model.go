@@ -1,6 +1,10 @@
 package playlists
 
-import "gorm.io/gorm"
+import (
+	"ytdlp-site/database"
+
+	"gorm.io/gorm"
+)
 
 type Status string
 
@@ -21,6 +25,7 @@ const (
 	StatusFailed      Status = "failed"
 )
 
-func SetStatus(db *gorm.DB, id uint, status Status) error {
+func SetStatus(id uint, status Status) error {
+	db := database.Get()
 	return db.Model(&Playlist{}).Where("id = ?", id).Update("status", status).Error
 }

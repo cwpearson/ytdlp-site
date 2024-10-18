@@ -14,6 +14,7 @@ ADD handlers /src/handlers
 ADD media /src/media
 ADD originals /src/originals
 Add playlists /src/playlists
+ADD transcodes /src/transcodes
 Add ytdlp /src/ytdlp
 ADD go.mod /src/.
 

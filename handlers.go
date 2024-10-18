@@ -22,6 +22,7 @@ import (
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
 	"ytdlp-site/playlists"
+	"ytdlp-site/transcodes"
 	"ytdlp-site/ytdlp"
 )
 
@@ -461,21 +462,46 @@ func getAudioMeta(path string) (AudioMeta, error) {
 	}, nil
 }
 
-func addAudioTranscode(mediaId, originalId, bitrate uint, srcKind string) {
-	t := Transcode{
+func newAudioTranscode(mediaId, originalId, kbps uint, srcKind string) {
+	t := transcodes.Transcode{
 		SrcID:      mediaId,
 		OriginalID: originalId,
 		SrcKind:    srcKind,
 		DstKind:    "audio",
-		Rate:       bitrate,
+		Kbps:       kbps,
 		TimeSubmit: time.Now(),
 		Status:     "pending",
 	}
 	db.Create(&t)
+
+	if srcKind == "video" {
+		var srcVideo media.Video
+		err := db.First(&srcVideo, "id = ?", t.SrcID).Error
+		if err != nil {
+			fmt.Println("no such source video for video Transcode", t)
+			db.Delete(&t)
+			return
+		}
+		srcFilepath := filepath.Join(config.GetDataDir(), srcVideo.Filename)
+		go videoToAudio(sem, t.ID, srcFilepath)
+	} else if srcKind == "audio" {
+		var srcAudio media.Audio
+		err := db.First(&srcAudio, "id = ?", t.SrcID).Error
+		if err != nil {
+			log.Errorln("no such source audio for audio Transcode", t)
+			db.Delete(&t)
+			return
+		}
+		srcFilepath := filepath.Join(config.GetDataDir(), srcAudio.Filename)
+		go audioToAudio(sem, t.ID, srcFilepath)
+	} else {
+		fmt.Println("unexpected src/dst kinds for Transcode", t)
+		db.Delete(&t)
+	}
 }
 
-func addVideoTranscode(videoId, originalId, targetHeight uint, targetFPS float64) {
-	t := Transcode{
+func newVideoTranscode(videoId, originalId, targetHeight uint, targetFPS float64) {
+	t := transcodes.Transcode{
 		SrcID:      videoId,
 		OriginalID: originalId,
 		SrcKind:    "video",
@@ -486,6 +512,17 @@ func addVideoTranscode(videoId, originalId, targetHeight uint, targetFPS float64
 		Status:     "pending",
 	}
 	db.Create(&t)
+
+	var srcVideo media.Video
+	err := db.First(&srcVideo, "id = ?", t.SrcID).Error
+	if err != nil {
+		fmt.Println("no such source video for video Transcode", t)
+		db.Delete(&t)
+		return
+	}
+	srcFilepath := filepath.Join(config.GetDataDir(), srcVideo.Filename)
+
+	go videoToVideo(sem, t.ID, srcFilepath)
 }
 
 func processOriginal(originalID uint) {
@@ -514,14 +551,14 @@ func processOriginal(originalID uint) {
 		}
 
 		// create audio transcodes
-		for _, bitrate := range []uint{64 /*, 96, 128, 160, 192*/} {
-			addAudioTranscode(video.ID, originalID, bitrate, "video")
+		for _, kbps := range []uint{64 /*, 96, 128, 160, 192*/} {
+			newAudioTranscode(video.ID, originalID, kbps, "video")
 		}
 
 		// create video transcodes
 		for _, targetHeight := range []uint{480, 240, 144} {
 			if targetHeight <= video.Height {
-				addVideoTranscode(video.ID, originalID, targetHeight, video.FPS)
+				newVideoTranscode(video.ID, originalID, targetHeight, video.FPS)
 				break
 			}
 		}
@@ -536,8 +573,8 @@ func processOriginal(originalID uint) {
 		}
 
 		// create audio transcodes
-		for _, bitrate := range []uint{64 /*, 96, 128, 160, 192*/} {
-			addAudioTranscode(audio.ID, originalID, bitrate, "audio")
+		for _, kbps := range []uint{64 /*, 96, 128, 160, 192*/} {
+			newAudioTranscode(audio.ID, originalID, kbps, "audio")
 		}
 
 	} else {
@@ -550,7 +587,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	log.Debugf("startDownload audioOnly=%t", audioOnly)
 
 	// metadata phase
-	originals.SetStatus(db, originalID, originals.StatusMetadata)
+	originals.SetStatus(originalID, originals.StatusMetadata)
 	var origMeta Meta
 	var err error
 	if audioOnly {
@@ -560,7 +597,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}
 	if err != nil {
 		log.Errorln("couldn't retrieve metadata:", err)
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 	log.Debugf("original metadata %v", origMeta)
@@ -570,19 +607,19 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}).Error
 	if err != nil {
 		log.Errorln("couldn't store metadata:", err)
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 
 	// download original
-	originals.SetStatus(db, originalID, originals.StatusDownloading)
+	originals.SetStatus(originalID, originals.StatusDownloading)
 
 	// create temporary directory
 	// do this in the data directory since /tmp is sometimes a different filesystem
 	tempDir, err := os.MkdirTemp(config.GetDataDir(), "dl")
 	if err != nil {
 		log.Errorln("Error creating temporary directory:", err)
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 	defer os.RemoveAll(tempDir)
@@ -603,7 +640,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	err = cmd.Run()
 	if err != nil {
 		log.Errorln("yt-dlp failed")
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 
@@ -611,7 +648,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	dirEnts, err := os.ReadDir(tempDir)
 	if err != nil {
 		log.Errorln("Error reading directory:", err)
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 	dlFilename := ""
@@ -624,7 +661,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	}
 	if dlFilename == "" {
 		log.Errorln("couldn't find a downloaded file")
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 	}
 
 	// move to data directory
@@ -634,7 +671,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 	err = os.Rename(srcPath, dlFilepath)
 	if err != nil {
 		log.Errorln("rename downloaded media error", srcPath, "->", dlFilepath, ":", err)
-		originals.SetStatus(db, originalID, originals.StatusFailed)
+		originals.SetStatus(originalID, originals.StatusFailed)
 		return
 	}
 
@@ -642,7 +679,7 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		mediaMeta, err := getAudioMeta(dlFilepath)
 		if err != nil {
 			log.Errorln("couldn't get audio file metadata", err)
-			originals.SetStatus(db, originalID, originals.StatusFailed)
+			originals.SetStatus(originalID, originals.StatusFailed)
 			return
 		}
 
@@ -658,14 +695,14 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		fmt.Println("create Audio", audio)
 		if db.Create(&audio).Error != nil {
 			fmt.Println("Couldn't create audio entry", err)
-			originals.SetStatus(db, originalID, originals.StatusFailed)
+			originals.SetStatus(originalID, originals.StatusFailed)
 			return
 		}
 	} else {
 		mediaMeta, err := getVideoMeta(dlFilepath)
 		if err != nil {
 			log.Errorln("couldn't get video file metadata", err)
-			originals.SetStatus(db, originalID, originals.StatusFailed)
+			originals.SetStatus(originalID, originals.StatusFailed)
 			return
 		}
 
@@ -684,12 +721,12 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		log.Debugln("create Video", video)
 		if db.Create(&video).Error != nil {
 			log.Errorln("Couldn't create video entry", err)
-			originals.SetStatus(db, originalID, originals.StatusFailed)
+			originals.SetStatus(originalID, originals.StatusFailed)
 			return
 		}
 	}
 
-	originals.SetStatus(db, originalID, originals.StatusDownloadCompleted)
+	originals.SetStatus(originalID, originals.StatusDownloadCompleted)
 	processOriginal(originalID)
 }
 
@@ -697,14 +734,14 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 	// retrieve playlist metadata
 	pl, err := getYtdlpPlaylist(url)
 	if err != nil {
-		playlists.SetStatus(db, id, playlists.StatusFailed)
+		playlists.SetStatus(id, playlists.StatusFailed)
 		return
 	}
 	err = db.Model(&playlists.Playlist{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"title": pl.Title,
 	}).Error
 	if err != nil {
-		playlists.SetStatus(db, id, playlists.StatusFailed)
+		playlists.SetStatus(id, playlists.StatusFailed)
 		return
 	}
 
@@ -720,11 +757,11 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 		}
 		err = db.Create(&original).Error
 		if err != nil {
-			playlists.SetStatus(db, id, playlists.StatusFailed)
+			playlists.SetStatus(id, playlists.StatusFailed)
 			return
 		}
 	}
-	playlists.SetStatus(db, id, playlists.StatusCompleted)
+	playlists.SetStatus(id, playlists.StatusCompleted)
 }
 
 func videosHandler(c echo.Context) error {
@@ -898,7 +935,7 @@ func videoRestartHandler(c echo.Context) error {
 
 func deleteTranscodes(originalID uint) {
 	log.Debugln("Delete Transcode entries for Original", originalID)
-	db.Delete(&Transcode{}, "original_id = ?", originalID)
+	db.Delete(&transcodes.Transcode{}, "original_id = ?", originalID)
 }
 
 func deleteTranscodedVideos(originalID uint) {
@@ -1045,7 +1082,7 @@ func transcodeToVideoHandler(c echo.Context) error {
 	if err == gorm.ErrRecordNotFound {
 		log.Errorf("no video record for original %d: %v", originalId, err)
 	} else {
-		addVideoTranscode(video.ID, uint(originalId), uint(height), fps)
+		newVideoTranscode(video.ID, uint(originalId), uint(height), fps)
 	}
 
 	return c.Redirect(http.StatusSeeOther, referrer)
@@ -1074,9 +1111,9 @@ func transcodeToAudioHandler(c echo.Context) error {
 	}
 
 	if hasOriginalVideo {
-		addAudioTranscode(video.ID, uint(originalId), uint(kbps), "video")
+		newAudioTranscode(video.ID, uint(originalId), uint(kbps), "video")
 	} else if hasOriginalAudio {
-		addAudioTranscode(audio.ID, uint(originalId), uint(kbps), "audio")
+		newAudioTranscode(audio.ID, uint(originalId), uint(kbps), "audio")
 	} else {
 		log.Errorln("no audio or video record for original", originalId)
 	}
@@ -1102,7 +1139,7 @@ func processHandler(c echo.Context) error {
 	deleteAudiosWithSource(uint(id), "transcode")
 	deleteTranscodedVideos(uint(id))
 
-	err := originals.SetStatus(db, uint(id), originals.StatusDownloadCompleted)
+	err := originals.SetStatus(uint(id), originals.StatusDownloadCompleted)
 	if err != nil {
 		log.Errorf("error while setting original %d status: %v", id, err)
 	}

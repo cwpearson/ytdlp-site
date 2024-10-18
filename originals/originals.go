@@ -1,6 +1,11 @@
 package originals
 
-import "gorm.io/gorm"
+import (
+	"ytdlp-site/database"
+	"ytdlp-site/transcodes"
+
+	"gorm.io/gorm"
+)
 
 type Status string
 
@@ -29,6 +34,29 @@ type Original struct {
 	PlaylistID uint // Playlist.ID (if part of a playlist)
 }
 
-func SetStatus(db *gorm.DB, id uint, status Status) error {
+func SetStatus(id uint, status Status) error {
+	db := database.Get()
+	log.Debugln("original", id, "status -> ", status)
 	return db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
+}
+
+// if there is an active transcode for this original,
+// set the status to transcode. otherwise ,to completed
+func SetStatusTranscodingOrCompleted(id uint) error {
+	db := database.Get()
+
+	var count int64
+	err := db.Model(&transcodes.Transcode{}).Where("original_id = ?", id).Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		log.Debugln("found transcodes for original", id)
+		return SetStatus(id, StatusTranscoding)
+	} else {
+		log.Debugln("no transcodes for original", id)
+		return SetStatus(id, StatusCompleted)
+	}
+
 }

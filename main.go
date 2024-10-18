@@ -23,6 +23,7 @@ import (
 	"ytdlp-site/media"
 	"ytdlp-site/originals"
 	"ytdlp-site/playlists"
+	"ytdlp-site/transcodes"
 	"ytdlp-site/ytdlp"
 )
 
@@ -57,6 +58,8 @@ func main() {
 	ffmpeg.Init(log)
 	handlers.Init(log)
 	ytdlp.Init(log)
+	originals.Init(log)
+	defer originals.Fini()
 
 	gormLogger := logger.New(
 		golog.New(os.Stdout, "\r\n", golog.LstdFlags), // io writer
@@ -93,7 +96,7 @@ func main() {
 
 	// Migrate the schema
 	db.AutoMigrate(&originals.Original{}, &playlists.Playlist{}, &media.Video{},
-		&media.Audio{}, &User{}, &TempURL{}, &Transcode{})
+		&media.Audio{}, &User{}, &TempURL{}, &transcodes.Transcode{})
 
 	database.Init(db, log)
 	defer database.Fini()
@@ -168,8 +171,9 @@ func main() {
 		Secure:   secure,
 	}
 
-	// start the transcode worker
-	go transcodeWorker()
+	// tidy up the transcodes database
+	log.Debug("tidy transcodes database...")
+	cleanupTranscodes()
 
 	// Start server
 	e.Logger.Fatal(e.Start(":8080"))
