@@ -1,6 +1,7 @@
 package originals
 
 import (
+	"sync"
 	"ytdlp-site/database"
 	"ytdlp-site/transcodes"
 
@@ -35,10 +36,35 @@ type Original struct {
 	PlaylistID uint // Playlist.ID (if part of a playlist)
 }
 
+var listeners map[uint][]*Queue // map of userId to queues
+var lMu sync.Mutex
+
+func bcast(userId, origId uint, status Status) {
+	lMu.Lock()
+	defer lMu.Unlock()
+
+	qs, ok := listeners[userId]
+	if ok {
+		for _, q := range qs {
+			q.Ch <- Event{origId, status}
+		}
+	}
+}
+
 func SetStatus(id uint, status Status) error {
 	db := database.Get()
 	log.Debugln("original", id, "status -> ", status)
-	return db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
+	err := db.Model(&Original{}).Where("id = ?", id).Update("status", status).Error
+	if err != nil {
+		return err
+	}
+	var orig Original
+	err = db.Where("id = ?", id).First(&orig).Error
+	if err != nil {
+		return err
+	}
+	bcast(orig.UserID, id, status)
+	return nil
 }
 
 // if there is an active transcode for this original,
@@ -78,19 +104,21 @@ func newQueue() *Queue {
 	}
 }
 
-var listeners map[uint][]*Queue
-
 func Subscribe(userId uint) *Queue {
 	_, ok := listeners[userId]
 	if !ok {
 		listeners[userId] = make([]*Queue, 0)
 	}
 	q := newQueue()
+	lMu.Lock()
 	listeners[userId] = append(listeners[userId], q)
+	lMu.Unlock()
 	return q
 }
 
 func Unsubscribe(userId uint, q *Queue) {
+	lMu.Lock()
+	defer lMu.Unlock()
 
 	qs, ok := listeners[userId]
 	if !ok {
