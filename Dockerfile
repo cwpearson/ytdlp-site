@@ -15,6 +15,7 @@ ADD media /src/media
 ADD originals /src/originals
 Add playlists /src/playlists
 ADD transcodes /src/transcodes
+ADD users /src/users
 Add ytdlp /src/ytdlp
 ADD go.mod /src/.
 

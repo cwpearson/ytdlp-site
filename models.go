@@ -8,15 +8,7 @@ import (
 	"ytdlp-site/originals"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
-
-type User struct {
-	gorm.Model
-	Username string `gorm:"unique"`
-	Password string
-}
 
 type TempURL struct {
 	Token     string `gorm:"uniqueIndex"`
@@ -35,15 +27,6 @@ type DownloadStatus struct {
 type DownloadManager struct {
 	downloads map[uint]*DownloadStatus
 	mutex     sync.RWMutex
-}
-
-func CreateUser(db *gorm.DB, username, password string) error {
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	user := User{Username: username, Password: string(hashedPassword)}
-	if err := db.Create(&user).Error; err != nil {
-		return err
-	}
-	return nil
 }
 
 func SetOriginalStatus(id uint, status originals.Status) error {

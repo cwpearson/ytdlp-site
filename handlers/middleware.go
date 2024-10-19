@@ -1,16 +1,13 @@
-package main
+package handlers
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
 )
 
-var store *sessions.CookieStore
-
-func authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		session, err := store.Get(c.Request(), "session")
 		if err != nil {

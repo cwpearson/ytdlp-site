@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/driver/sqlite"
@@ -24,6 +23,7 @@ import (
 	"ytdlp-site/originals"
 	"ytdlp-site/playlists"
 	"ytdlp-site/transcodes"
+	"ytdlp-site/users"
 	"ytdlp-site/ytdlp"
 )
 
@@ -31,7 +31,7 @@ var db *gorm.DB
 
 func ensureAdminAccount(db *gorm.DB) error {
 
-	var user User
+	var user users.User
 	if err := db.Where("username = ?", "admin").First(&user).Error; err != nil {
 		// no such user
 
@@ -40,7 +40,7 @@ func ensureAdminAccount(db *gorm.DB) error {
 			return err
 		}
 
-		err = CreateUser(db, "admin", password)
+		err = users.Create(db, "admin", password)
 		if err != nil {
 			return err
 		}
@@ -96,10 +96,15 @@ func main() {
 
 	// Migrate the schema
 	db.AutoMigrate(&originals.Original{}, &playlists.Playlist{}, &media.Video{},
-		&media.Audio{}, &User{}, &TempURL{}, &transcodes.Transcode{})
+		&media.Audio{}, &users.User{}, &TempURL{}, &transcodes.Transcode{})
 
 	database.Init(db, log)
 	defer database.Fini()
+	err = handlers.Init(log)
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+	defer handlers.Fini()
 
 	go PeriodicCleanup()
 
@@ -108,13 +113,6 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to create admin user: %v", err))
 	}
-
-	// create the cookie store
-	key, err := config.GetSessionAuthKey()
-	if err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	store = sessions.NewCookieStore(key)
 
 	// Initialize Echo
 	e := echo.New()
@@ -131,45 +129,36 @@ func main() {
 
 	// Routes
 	e.GET("/", homeHandler)
-	e.GET("/login", loginHandler)
-	e.POST("/login", loginPostHandler)
+	e.GET("/login", handlers.LoginGet)
+	e.POST("/login", handlers.LoginPost)
 	// e.GET("/register", registerHandler)
 	// e.POST("/register", registerPostHandler)
-	e.GET("/logout", logoutHandler)
-	e.GET("/download", downloadHandler, authMiddleware)
-	e.POST("/download", downloadPostHandler, authMiddleware)
-	e.GET("/videos", videosHandler, authMiddleware)
-	e.GET("/video/:id", videoHandler, authMiddleware)
-	e.POST("/video/:id/restart", videoRestartHandler, authMiddleware)
-	e.POST("/video/:id/delete", deleteOriginalHandler, authMiddleware)
+	e.GET("/logout", handlers.LogoutGet)
+	e.GET("/download", downloadHandler, handlers.AuthMiddleware)
+	e.POST("/download", downloadPostHandler, handlers.AuthMiddleware)
+	e.GET("/videos", videosHandler, handlers.AuthMiddleware)
+	e.GET("/video/:id", videoHandler, handlers.AuthMiddleware)
+	e.POST("/video/:id/restart", videoRestartHandler, handlers.AuthMiddleware)
+	e.POST("/video/:id/delete", deleteOriginalHandler, handlers.AuthMiddleware)
 	e.GET("/temp/:token", tempHandler)
-	e.POST("/video/:id/process", processHandler, authMiddleware)
-	e.POST("/video/:id/toggle_watched", handlers.ToggleWatched, authMiddleware)
-	e.POST("/delete_video/:id", deleteVideoHandler, authMiddleware)
-	e.POST("/delete_audio/:id", deleteAudioHandler, authMiddleware)
-	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, authMiddleware)
-	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, authMiddleware)
-	e.GET("/status", handlers.StatusGet, authMiddleware)
+	e.POST("/video/:id/process", processHandler, handlers.AuthMiddleware)
+	e.POST("/video/:id/toggle_watched", handlers.ToggleWatched, handlers.AuthMiddleware)
+	e.POST("/delete_video/:id", deleteVideoHandler, handlers.AuthMiddleware)
+	e.POST("/delete_audio/:id", deleteAudioHandler, handlers.AuthMiddleware)
+	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, handlers.AuthMiddleware)
+	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, handlers.AuthMiddleware)
+	e.GET("/status", handlers.StatusGet, handlers.AuthMiddleware)
 
-	e.GET("/p/:id", playlistHandler, authMiddleware)
-	e.POST("/p/:id/delete", deletePlaylistHandler, authMiddleware)
+	e.GET("/p/:id", playlistHandler, handlers.AuthMiddleware)
+	e.POST("/p/:id/delete", deletePlaylistHandler, handlers.AuthMiddleware)
 
 	dataGroup := e.Group("/data")
-	dataGroup.Use(authMiddleware)
+	dataGroup.Use(handlers.AuthMiddleware)
 	dataGroup.Static("/", config.GetDataDir())
 
 	staticGroup := e.Group("/static")
-	staticGroup.Use(authMiddleware)
+	staticGroup.Use(handlers.AuthMiddleware)
 	staticGroup.Static("/", "static")
-
-	secure := config.GetSecure()
-
-	store.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   30 * 24 * 60 * 60, // seconds
-		HttpOnly: true,
-		Secure:   secure,
-	}
 
 	// tidy up the transcodes database
 	log.Debug("tidy transcodes database...")

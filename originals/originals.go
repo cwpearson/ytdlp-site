@@ -4,6 +4,7 @@ import (
 	"ytdlp-site/database"
 	"ytdlp-site/transcodes"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -58,5 +59,49 @@ func SetStatusTranscodingOrCompleted(id uint) error {
 		log.Debugln("no transcodes for original", id)
 		return SetStatus(id, StatusCompleted)
 	}
+}
 
+type Event struct {
+	VideoId uint
+	Status  Status
+}
+
+type Queue struct {
+	id uuid.UUID
+	Ch chan Event
+}
+
+func newQueue() *Queue {
+	return &Queue{
+		id: uuid.Must(uuid.NewV7()),
+		Ch: make(chan Event),
+	}
+}
+
+var listeners map[uint][]*Queue
+
+func Subscribe(userId uint) *Queue {
+	_, ok := listeners[userId]
+	if !ok {
+		listeners[userId] = make([]*Queue, 0)
+	}
+	q := newQueue()
+	listeners[userId] = append(listeners[userId], q)
+	return q
+}
+
+func Unsubscribe(userId uint, q *Queue) {
+
+	qs, ok := listeners[userId]
+	if !ok {
+		return
+	}
+
+	newQs := []*Queue{}
+	for _, oldQ := range qs {
+		if oldQ != q {
+			newQs = append(newQs, oldQ)
+		}
+	}
+	listeners[userId] = newQs
 }
