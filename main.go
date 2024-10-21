@@ -148,6 +148,7 @@ func main() {
 	e.POST("/transcode_to_video/:id", transcodeToVideoHandler, handlers.AuthMiddleware)
 	e.POST("/transcode_to_audio/:id", transcodeToAudioHandler, handlers.AuthMiddleware)
 	e.GET("/status", handlers.StatusGet, handlers.AuthMiddleware)
+	e.GET("/videos/events", handlers.VideosEvents, handlers.AuthMiddleware)
 
 	e.GET("/p/:id", playlistHandler, handlers.AuthMiddleware)
 	e.POST("/p/:id/delete", deletePlaylistHandler, handlers.AuthMiddleware)

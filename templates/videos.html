@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="10">
+    {{if .refresh}}
+    <meta http-equiv="refresh" content="15">
+    {{end}}
     <title>Downloaded Videos</title>
     <link rel="stylesheet" href="/static/style/common.css">
     <link rel="stylesheet" href="/static/style/videos.css">
@@ -19,38 +21,49 @@
 
     <div class="video-list">
         {{range .videos}}
-        <div class="video-card">
-            <div class="video-title">
-                {{if or (eq .Status "download completed") (eq .Status "transcoding") (eq .Status "completed")}}
+        <div class="video-card" id="video-card-{{.ID}}">
+            {{$bareHidden := ""}}
+            {{$linkHidden := ""}}
+            {{if or (eq .Status "completed") (eq .Status "transcoding") (eq .Status "download completed")}}
+            {{$bareHidden = "hidden"}}
+            {{else}}
+            {{$linkHidden = "hidden"}}
+            {{end}}
+            <div class="video-title video-title-link {{$linkHidden}}">
                 <a href="/video/{{.ID}}">{{.Title}}</a>
-                {{else}}
+            </div>
+            <div class="video-title video-title-bare {{$bareHidden}}">
                 {{.Title}}
-                {{end}}
             </div>
             <div class="video-info">{{.Artist}}</div>
             <div class="video-info"><a href="{{.URL}}">{{.URL}}</a></div>
-            <div class="video-info">{{.Status}}</div>
+            <div class="video-info video-status">{{.Status}}</div>
             <div class="video-info">
-                {{if .Audio}}
-                Audio
-                {{end}}
-                {{if .Video}}
-                Video
-                {{end}}
+                {{if .Audio}} Audio {{end}}
+                {{if .Video}} Video {{end}}
             </div>
             <div class="video-options">
+                {{$processHidden := ""}}
+                {{$deleteHidden := ""}}
+                {{$restartHidden := ""}}
                 {{if eq .Status "completed"}}
-                <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
-                    <button type="submit">Reprocess</button>
-                </form>
+                {{$restartHidden = "hidden"}}
                 {{else if eq .Status "failed"}}
-                <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
-                    <button type="submit">Restart</button>
-                </form>
-                {{else if eq .Status "downloading"}}
+                {{$processHidden = "hidden"}}
+                {{$deleteHidden = "hidden"}}
+                {{else}}
+                {{$processHidden = "hidden"}}
+                {{$deleteHidden = "hidden"}}
+                {{$restartHidden = "hidden"}}
                 {{end}}
+                <form action="/video/{{.ID}}/process" method="post" style="display:inline;">
+                    <button type="submit" class="reprocess-btn {{$processHidden}}">Reprocess</button>
+                </form>
                 <form action="/video/{{.ID}}/delete" method="post" style="display:inline;">
-                    <button type="submit" class="delete-btn">Delete</button>
+                    <button type="submit" class="delete-btn {{$deleteHidden}}">Delete</button>
+                </form>
+                <form action="/video/{{.ID}}/restart" method="post" style="display:inline;">
+                    <button type="submit" class="restart-btn {{$restartHidden}}">Restart</button>
                 </form>
             </div>
         </div>
@@ -77,7 +90,10 @@
         </div>
         {{end}}
     </div>
+
+
     {{template "footer" .}}
+    <!-- <script src="/static/script/videos-events.js" defer></script> -->
 </body>
 
 </html>

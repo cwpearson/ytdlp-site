@@ -39,14 +39,14 @@ type Original struct {
 var listeners map[uint][]*Queue // map of userId to queues
 var lMu sync.Mutex
 
-func bcast(userId, origId uint, status Status) {
+func bcast(userId, origId uint, pl VideoEventPayload) {
 	lMu.Lock()
 	defer lMu.Unlock()
 
 	qs, ok := listeners[userId]
 	if ok {
 		for _, q := range qs {
-			q.Ch <- Event{origId, status}
+			q.Ch <- Event{origId, pl}
 		}
 	}
 }
@@ -63,7 +63,7 @@ func SetStatus(id uint, status Status) error {
 	if err != nil {
 		return err
 	}
-	bcast(orig.UserID, id, status)
+	bcast(orig.UserID, id, makeVideosPayload(status, orig.Title))
 	return nil
 }
 
@@ -87,9 +87,18 @@ func SetStatusTranscodingOrCompleted(id uint) error {
 	}
 }
 
+type VideoEventPayload struct {
+	Status Status
+	Title  string
+}
+
+func makeVideosPayload(status Status, title string) VideoEventPayload {
+	return VideoEventPayload{status, title}
+}
+
 type Event struct {
 	VideoId uint
-	Status  Status
+	VideoEventPayload
 }
 
 type Queue struct {

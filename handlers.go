@@ -716,11 +716,20 @@ func videosHandler(c echo.Context) error {
 	var origs []originals.Original
 	db.Where("user_id = ?", userID).Order("id DESC").Find(&origs)
 
+	refresh := false
+	for _, orig := range origs {
+		if orig.Status != "completed" {
+			refresh = true
+			break
+		}
+	}
+
 	var playlists []playlists.Playlist
 	db.Where("user_id = ?", userID).Order("id DESC").Find(&playlists)
 
 	return c.Render(http.StatusOK, "videos.html",
 		map[string]interface{}{
+			"refresh":   refresh,
 			"videos":    origs,
 			"playlists": playlists,
 			"Footer":    handlers.MakeFooter(),

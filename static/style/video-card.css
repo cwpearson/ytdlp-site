@@ -38,3 +38,8 @@
     background-color: rgb(255, 70, 70);
     color: white;
 }
+
+.video-card .hidden {
+    display: none;
+    visibility: hidden;
+}
