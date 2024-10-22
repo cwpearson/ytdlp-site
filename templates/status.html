@@ -32,6 +32,15 @@
             <h2>Disk</h2>
             {{.used}} MiB ({{.free}} MiB remaning)
         </div>
+        {{ range .files }}
+        <div class="progress-wrapper">
+            <progress value="{{.value}}" max="{{.max}}">{{.value}}%</progress>
+            {{.name}} {{.size}} MiB
+            {{ if ne .original_id "" }}
+            <a href="/video/{{.original_id}}">{{.original_id}}</a>
+            {{end}}
+        </div>
+        {{ end }}
     </div>
     {{template "footer" .}}
 </body>
