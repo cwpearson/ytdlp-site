@@ -15,6 +15,7 @@ import (
 	"ytdlp-site/database"
 	"ytdlp-site/ffmpeg"
 	"ytdlp-site/media"
+	"ytdlp-site/originals"
 	"ytdlp-site/ytdlp"
 )
 
@@ -71,6 +72,16 @@ func getOriginalId(db *gorm.DB, filename string) (uint, error) {
 	return 0, fmt.Errorf("no media found")
 }
 
+// playlistId, ok
+func getPlaylistId(db *gorm.DB, origId uint) (uint, bool) {
+	var orig originals.Original
+	result := db.Where("id = ?", origId).First(&orig)
+	if result.Error == nil && result.RowsAffected == 1 {
+		return orig.PlaylistID, orig.Playlist
+	}
+	return 0, false
+}
+
 func StatusGet(c echo.Context) error {
 
 	ytdlpStdout, _, err := ytdlp.Run("--version")
@@ -121,6 +132,10 @@ func StatusGet(c echo.Context) error {
 		originalId, err := getOriginalId(database.Get(), entry.Name)
 		if err == nil {
 			m["original_id"] = fmt.Sprintf("%d", originalId)
+			playlistId, ok := getPlaylistId(database.Get(), originalId)
+			if ok {
+				m["playlist_id"] = fmt.Sprintf("%d", playlistId)
+			}
 		}
 
 	}

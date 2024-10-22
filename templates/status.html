@@ -36,8 +36,10 @@
         <div class="progress-wrapper">
             <progress value="{{.value}}" max="{{.max}}">{{.value}}%</progress>
             {{.name}} {{.size}} MiB
-            {{ if ne .original_id "" }}
-            <a href="/video/{{.original_id}}">{{.original_id}}</a>
+            {{ if ne .playlist_id "" }}
+            <a href="/p/{{.playlist_id}}">Playlist {{.playlist_id}}</a>
+            {{ else if ne .original_id "" }}
+            <a href="/video/{{.original_id}}">Video {{.original_id}}</a>
             {{end}}
         </div>
         {{ end }}
