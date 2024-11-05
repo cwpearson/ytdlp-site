@@ -13,6 +13,8 @@ input[type="url"] {
     width: 100%;
     padding: 1rem;
     font-size: 1.25rem;
+    text-overflow: hidden;
+    box-sizing: border-box;
 }
 
 .radio-group {
