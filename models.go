@@ -15,14 +15,6 @@ type TempURL struct {
 	ExpiresAt time.Time
 }
 
-type DownloadStatus struct {
-	ID        uint
-	Progress  float64
-	Status    string
-	Error     string
-	StartTime time.Time
-}
-
 func SetOriginalStatus(id uint, status originals.Status) error {
 	return db.Model(&originals.Original{}).Where("id = ?", id).Update("status", status).Error
 }
