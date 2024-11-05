@@ -81,8 +81,10 @@ func videoToVideo(sem chan struct{}, transID uint, srcFilepath string) {
 
 	// create video record
 	video := media.Video{
-		MediaFile: media.MediaFile{
-			Filename: dstFilename,
+		VideoFile: media.VideoFile{
+			MediaFile: media.MediaFile{
+				Filename: dstFilename,
+			},
 		},
 		OriginalID: orig.ID, Source: "transcode",
 	}

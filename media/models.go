@@ -19,6 +19,13 @@ type MediaFile struct {
 	Filename string
 }
 
+type VideoFile struct {
+	MediaFile
+	Width  uint
+	Height uint
+	FPS    float64
+}
+
 type Audio struct {
 	gorm.Model
 	MediaFile
@@ -30,11 +37,14 @@ type Audio struct {
 
 type Video struct {
 	gorm.Model
-	MediaFile
+	VideoFile
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
-	Width      uint
-	Height     uint
-	FPS        float64
 	Status     Status
+}
+
+type Clip struct {
+	gorm.Model
+	VideoFile
+	OriginalID uint // Original.ID
 }

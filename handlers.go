@@ -654,16 +654,18 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 		}
 
 		video := media.Video{
-			MediaFile: media.MediaFile{
-				Length:   mediaMeta.length,
-				Size:     mediaMeta.size,
-				Filename: dlFilename,
+			VideoFile: media.VideoFile{
+				MediaFile: media.MediaFile{
+					Length:   mediaMeta.length,
+					Size:     mediaMeta.size,
+					Filename: dlFilename,
+				},
+				FPS:    mediaMeta.fps,
+				Width:  mediaMeta.width,
+				Height: mediaMeta.height,
 			},
 			OriginalID: originalID,
 			Source:     "original",
-			FPS:        mediaMeta.fps,
-			Width:      mediaMeta.width,
-			Height:     mediaMeta.height,
 		}
 		log.Debugln("create Video", video)
 		if db.Create(&video).Error != nil {
