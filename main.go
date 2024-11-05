@@ -95,8 +95,9 @@ func main() {
 	sqlDB.SetMaxOpenConns(1)
 
 	// Migrate the schema
-	db.AutoMigrate(&originals.Original{}, &playlists.Playlist{}, &media.Video{},
-		&media.Audio{}, &users.User{}, &TempURL{}, &transcodes.Transcode{})
+	db.AutoMigrate(&originals.Original{}, &playlists.Playlist{},
+		&media.Video{}, &media.Audio{}, &media.VideoClip{},
+		&users.User{}, &TempURL{}, &transcodes.Transcode{})
 
 	database.Init(db, log)
 	defer database.Fini()

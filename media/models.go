@@ -43,8 +43,10 @@ type Video struct {
 	Status     Status
 }
 
-type Clip struct {
+type VideoClip struct {
 	gorm.Model
 	VideoFile
 	OriginalID uint // Original.ID
+	StartMS    uint
+	StopMS     uint
 }

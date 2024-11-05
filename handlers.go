@@ -29,6 +29,13 @@ import (
 var ytdlpAudioOptions = []string{"-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]"}
 var ytdlpVideoOptions = []string{"-f", "bestaudio"}
 
+type DisplayVideoClip struct {
+	TempURL
+	ID    uint // VideoClip.ID
+	Start float64
+	Stop  float64
+}
+
 func registerHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "register.html", nil)
 }
@@ -814,11 +821,16 @@ func videoHandler(c echo.Context) error {
 		Order("CASE WHEN source = 'original' THEN 1 ELSE 0 END, bps ASC").
 		Find(&audios)
 
+	var videoClips []media.VideoClip
+	db.Where("original_id = ?", id).
+		Find(&videoClips)
+
 	dataDir := config.GetDataDir()
 
 	// create temporary URLs
 	var videoURLs []VideoTemplate
 	var audioURLs []AudioTemplate
+	var clipDisplays []DisplayVideoClip
 	for _, video := range videos {
 		tempURL, err := CreateTempURL(filepath.Join(dataDir, video.Filename))
 		if err != nil {
@@ -861,11 +873,26 @@ func videoHandler(c echo.Context) error {
 		})
 	}
 
+	for _, clip := range videoClips {
+		tempURL, err := CreateTempURL(filepath.Join(dataDir, clip.Filename))
+		if err != nil {
+			continue
+		}
+
+		clipDisplays = append(clipDisplays, DisplayVideoClip{
+			TempURL: tempURL,
+			ID:      clip.ID,
+			Start:   float64(1000 * clip.StartMS),
+			Stop:    float64(1000 * clip.StopMS),
+		})
+	}
+
 	return c.Render(http.StatusOK, "video.html",
 		map[string]interface{}{
 			"original": orig,
 			"videos":   videoURLs,
 			"audios":   audioURLs,
+			"clips":    clipDisplays,
 			"dataDir":  dataDir,
 			"Footer":   handlers.MakeFooter(),
 		})
