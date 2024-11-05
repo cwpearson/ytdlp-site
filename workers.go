@@ -80,7 +80,12 @@ func videoToVideo(sem chan struct{}, transID uint, srcFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create video record
-	video := media.Video{OriginalID: orig.ID, Source: "transcode", Filename: dstFilename}
+	video := media.Video{
+		MediaFile: media.MediaFile{
+			Filename: dstFilename,
+		},
+		OriginalID: orig.ID, Source: "transcode",
+	}
 
 	fileSize, err := getSize(dstFilepath)
 	if err == nil {
@@ -144,10 +149,13 @@ func videoToAudio(sem chan struct{}, transID uint, videoFilepath string) {
 	db.First(&orig, "id = ?", trans.OriginalID)
 
 	// create audio record
-	audio := media.Audio{OriginalID: orig.ID,
-		Filename: audioFilename,
-		Bps:      trans.Kbps * 1000,
-		Source:   "transcode",
+	audio := media.Audio{
+		MediaFile: media.MediaFile{
+			Filename: audioFilename,
+		},
+		OriginalID: orig.ID,
+		Bps:        trans.Kbps * 1000,
+		Source:     "transcode",
 	}
 
 	fileSize, err := getSize(audioFilepath)
@@ -205,8 +213,10 @@ func audioToAudio(sem chan struct{}, transID uint, srcFilepath string) {
 
 	// create audio record
 	audio := media.Audio{
+		MediaFile: media.MediaFile{
+			Filename: dstFilename,
+		},
 		OriginalID: orig.ID,
-		Filename:   dstFilename,
 		Bps:        trans.Kbps * 1000,
 		Source:     "transcode",
 	}

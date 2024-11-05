@@ -12,10 +12,11 @@ const (
 )
 
 type MediaFile struct {
-	Size   int64
-	Length float64
-	Type   string
-	Codec  string
+	Size     int64
+	Length   float64
+	Type     string
+	Codec    string
+	Filename string
 }
 
 type Audio struct {
@@ -24,7 +25,6 @@ type Audio struct {
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
 	Bps        uint
-	Filename   string
 	Status     Status
 }
 
@@ -33,7 +33,6 @@ type Video struct {
 	MediaFile
 	OriginalID uint   // Original.ID
 	Source     string // "original", "transcode"
-	Filename   string
 	Width      uint
 	Height     uint
 	FPS        float64

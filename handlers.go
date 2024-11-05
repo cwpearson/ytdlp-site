@@ -632,11 +632,11 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 		audio := media.Audio{
 			MediaFile: media.MediaFile{
-				Length: mediaMeta.length,
-				Size:   mediaMeta.size,
+				Length:   mediaMeta.length,
+				Size:     mediaMeta.size,
+				Filename: dlFilename,
 			},
 			OriginalID: originalID,
-			Filename:   dlFilename,
 			Source:     "original",
 		}
 		fmt.Println("create Audio", audio)
@@ -655,11 +655,11 @@ func startDownload(originalID uint, videoURL string, audioOnly bool) {
 
 		video := media.Video{
 			MediaFile: media.MediaFile{
-				Length: mediaMeta.length,
-				Size:   mediaMeta.size,
+				Length:   mediaMeta.length,
+				Size:     mediaMeta.size,
+				Filename: dlFilename,
 			},
 			OriginalID: originalID,
-			Filename:   dlFilename,
 			Source:     "original",
 			FPS:        mediaMeta.fps,
 			Width:      mediaMeta.width,
