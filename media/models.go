@@ -47,6 +47,7 @@ type VideoClip struct {
 	gorm.Model
 	VideoFile
 	OriginalID uint // Original.ID
+	VideoID    uint // Video.ID that this clip was made from
 	StartMS    uint
 	StopMS     uint
 }

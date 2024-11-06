@@ -32,8 +32,8 @@ var ytdlpVideoOptions = []string{"-f", "bestaudio"}
 type DisplayVideoClip struct {
 	TempURL
 	ID    uint // VideoClip.ID
-	Start float64
-	Stop  float64
+	Start string
+	Stop  string
 }
 
 func registerHandler(c echo.Context) error {
@@ -882,8 +882,8 @@ func videoHandler(c echo.Context) error {
 		clipDisplays = append(clipDisplays, DisplayVideoClip{
 			TempURL: tempURL,
 			ID:      clip.ID,
-			Start:   float64(1000 * clip.StartMS),
-			Stop:    float64(1000 * clip.StopMS),
+			Start:   fmt.Sprintf("%.2f", float64(1000*clip.StartMS)),
+			Stop:    fmt.Sprintf("%.2f", float64(1000*clip.StopMS)),
 		})
 	}
 
