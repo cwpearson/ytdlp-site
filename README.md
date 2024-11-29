@@ -50,7 +50,8 @@ Build and push this container to ghcr
 ## Roadmap
 
 - [ ] edit original metadata
-- [ ] Download playlists
+- Playlists
+  - [ ] Refresh
 - [ ] change from Audio -> Video
 - [x] Provide a better name for downloaded files
 - [x] Environment variable to control whether "Secure" flag set on cookie
