@@ -15,6 +15,7 @@
 <body>
     {{template "header" .}}
     <h1>{{.original.Title}}</h1>
+    {{ if .original.Video }}
     <div class="media-grid">
         {{range .videos}}
         <div class="media-card">
@@ -63,6 +64,7 @@
             </form>
         </div>
     </div>
+    {{end}}
     <div class="media-grid">
         {{range .audios}}
         <div class="media-card">
