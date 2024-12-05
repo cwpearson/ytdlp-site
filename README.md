@@ -71,3 +71,4 @@ Build and push this container to ghcr
 - [ ] move original video to bottom
 - [x] sort videos most to least recent
 - [x] header on playlist page
+- [ ] Choose database directory
