@@ -702,6 +702,8 @@ func startPlaylist(id uint, url string, audioOnly bool) {
 	}
 
 	for _, entry := range pl.Entries {
+		// TODO: check if an original with this URL and playlist ID already exists
+
 		original := originals.Original{
 			Title:      entry.Title,
 			URL:        entry.URL,
