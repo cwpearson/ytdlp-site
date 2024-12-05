@@ -33,7 +33,7 @@ docker run --rm -it \
 docker run --rm -it \
   -p 3000:8080 \
   --env YTDLP_SITE_DATA_DIR=/data \
-  --env YTDLP_SITE_CONFIG_DIR=/config \
+  --env YTDLP_SITE_CONFIG_DIR=/data/config \
   --env YTDLP_SITE_ADMIN_INITIAL_PASSWORD=abc123 \
   -v $(realpath data):/data \
   server
@@ -71,4 +71,4 @@ Build and push this container to ghcr
 - [ ] move original video to bottom
 - [x] sort videos most to least recent
 - [x] header on playlist page
-- [ ] Choose database directory
+- [x] Choose database directory

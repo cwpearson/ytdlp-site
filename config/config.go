@@ -18,7 +18,12 @@ func GetDataDir() string {
 	return "data"
 }
 
+// defaults to GetDataDir() / config
 func GetConfigDir() string {
+	value, exists := os.LookupEnv("YTDLP_SITE_CONFIG_DIR")
+	if exists {
+		return value
+	}
 	return filepath.Join(GetDataDir(), "config")
 }
 
