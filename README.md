@@ -49,6 +49,7 @@ Build and push this container to ghcr
 
 ## Roadmap
 
+- [x] Delete failed videos
 - [ ] edit original metadata
 - Playlists
   - [ ] Refresh
