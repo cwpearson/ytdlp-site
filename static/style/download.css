@@ -17,18 +17,11 @@ input[type="url"] {
     box-sizing: border-box;
 }
 
-.radio-group {
+.button-group {
     display: flex;
     gap: 10px;
     /* align-items: center; */
     justify-content: center;
-}
-
-.radio-group label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
 }
 
 button {

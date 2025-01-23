@@ -16,13 +16,10 @@
     <h1>Download Video</h1>
     <form method="POST">
         <input type="url" name="url" placeholder="Video URL" required>
-        <div class="radio-group">
-            <input type="radio" id="audio-video" name="color" value="audio-video" checked>
-            <label for="audio-video">Audio/Video</label>
-            <input type="radio" id="audio-video" name="color" value="audio">
-            <label for="audio">Audio Only</label>
+        <div class="button-group">
+            <button type="submit" name="color" value="audio-video">Download Video</button>
+            <button type="submit" name="color" value="audio">Download Audio</button>
         </div>
-        <button type="submit">Download</button>
     </form>
     {{template "footer" .}}
 </body>
