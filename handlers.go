@@ -510,7 +510,7 @@ func processOriginal(originalID uint) {
 		}
 
 		// create video transcodes
-		for _, targetHeight := range []uint{480, 240, 144} {
+		for _, targetHeight := range []uint{540, 480, 360, 240, 144} {
 			if targetHeight <= video.Height {
 				newVideoTranscode(video.ID, originalID, targetHeight, video.FPS)
 				break

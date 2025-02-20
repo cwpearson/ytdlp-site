@@ -49,9 +49,9 @@ func videoToVideo(sem chan struct{}, transID uint, srcFilepath string) {
 	// FIXME: ignoring any requested audio bitrate
 	// determine audio bitrate
 	var audioBitrate uint = 160
-	if trans.Height <= 144 {
+	if trans.Height <= 240 {
 		audioBitrate = 64
-	} else if trans.Height <= 480 {
+	} else if trans.Height <= 540 {
 		audioBitrate = 96
 	} else if trans.Height < 720 {
 		audioBitrate = 128
@@ -276,7 +276,7 @@ func cleanupTranscodes() {
 		var trans transcodes.Transcode
 		err := db.Where("status = ?", "pending").
 			Order("CASE " +
-				"WHEN dst_kind = 'video' AND height = 480 THEN 0 " +
+				"WHEN dst_kind = 'video' AND height = 540 THEN 0 " +
 				"WHEN dst_kind = 'audio' AND rate = 96 THEN 0 " +
 				"ELSE 1 END").First(&trans).Error
 		// err := db.First(&trans, "status = ?", "pending").Error
