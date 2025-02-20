@@ -67,7 +67,7 @@ func videoToVideo(sem chan struct{}, transID uint, srcFilepath string) {
 	}
 	stdout, stderr, err := ffmpeg.Ffmpeg("-i", srcFilepath,
 		"-vf", vf, "-c:v", "libx264",
-		"-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", audioBitrate),
+		"-crf", "23", "-preset", "fast", "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", audioBitrate),
 		dstFilepath)
 	if err != nil {
 		fmt.Println("Error: convert to video file", srcFilepath, "->", dstFilepath, string(stdout), string(stderr))
